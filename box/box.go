@@ -29,8 +29,9 @@ var fine = []rune{'─', '│', '┌', '┐', '└', '┘', '┬', '┴', '├',
 var bold = []rune{'━', '┃', '┏', '┓', '┗', '┛', '┳', '┻', '┣', '┫', '╋'}
 var double = []rune{'═', '║', '╔', '╗', '╚', '╝', '╦', '╩', '╠', '╣', '╬'}
 
-func GetBox(row, col int, boxType string) (box []string, err error) {
+func GetBox(row, col int, boxType string, payload []string) (box []string, err error) {
 	var useChar []rune
+	payloadCnt := len(payload)
 	switch boxType {
 	case "fine":
 		useChar = fine
@@ -46,7 +47,16 @@ func GetBox(row, col int, boxType string) (box []string, err error) {
 	}
 	box = append(box, string(useChar[2])+strings.Repeat(string(useChar[0]), col-2)+string(useChar[3]))
 	for i := 0; i < row-2; i++ {
-		box = append(box, string(useChar[1])+strings.Repeat(" ", col-2)+string(useChar[1]))
+		//暂时无法在包含有非ASCII字符时正确对齐
+		if i < payloadCnt {
+			copyLen := min(col-2, len([]byte(payload[i])))
+			a := string([]byte(payload[i])[:copyLen])
+			//a := fmt.Sprintf("%*s", copyLen, payload[i]) //无法截断
+			b := strings.Repeat(" ", col-2-copyLen)
+			box = append(box, string(useChar[1])+a+b+string(useChar[1]))
+		} else {
+			box = append(box, string(useChar[1])+strings.Repeat(" ", col-2)+string(useChar[1]))
+		}
 	}
 	box = append(box, string(useChar[4])+strings.Repeat(string(useChar[0]), col-2)+string(useChar[5]))
 	return box, err
