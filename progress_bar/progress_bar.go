@@ -53,17 +53,18 @@ func (p *ProgressBar) Update(current int) {
 
 // Print prints the current progress of the progress bar.
 func (p *ProgressBar) Print() {
-	p.rw.RLock() // Read lock to avoid race condition
+	p.rw.RLock()              // Read lock to avoid race condition
+	cursor.CursorMutex.Lock() // Lock the cursor to avoid concurrent access
 
 	fmt.Printf("%s", cursor.HideCursor())
 	window.ClearArea(p.posX, p.posY, p.width, p.height)
-	fmt.Printf("%s", cursor.GotoXY(p.posX, p.posY))
 	for i := 0; i < p.height; i++ {
 		fmt.Printf("%s", cursor.GotoXY(p.posX+i, p.posY))
 		block := int(float64(p.Current) / float64(p.Total) * float64(p.width))
 		fmt.Printf("%s", strings.Repeat("█", block)+strings.Repeat(" ", p.width-block))
 	}
-	p.rw.RUnlock() // Read unlock
+	cursor.CursorMutex.Unlock() // Unlock the cursor
+	p.rw.RUnlock()              // Read unlock
 }
 
 // Run starts the progress bar.
@@ -105,8 +106,85 @@ func (p *ProgressBar) Stop() {
 // UncertainProgressBar is a progress bar that shows an uncertain progress.
 
 type UncertainProgressBar struct {
-	posX, posY    int
-	width, height int
-	Interrupt     chan struct{}
-	Done          chan struct{}
+	posX, posY         int
+	width, height      int
+	Current, blockSize int
+	direction          int // 1 for increasing, -1 for decreasing
+	running            bool
+	interrupt          chan struct{}
+}
+
+// NewUncertainProgressBar creates a new uncertain progress bar.
+func NewUncertainProgressBar() *UncertainProgressBar {
+	return &UncertainProgressBar{
+		direction: 1,
+		interrupt: make(chan struct{}),
+	}
+}
+
+func (p *UncertainProgressBar) SetPos(posX, posY, width, height int) {
+	getBlockSize := func(width int) int {
+		if width < 4 {
+			return 1
+		}
+		return width / 5
+	}
+	p.posX = posX
+	p.posY = posY
+	p.width = width
+	p.height = height
+	p.blockSize = getBlockSize(width - 2)
+}
+
+func (p *UncertainProgressBar) Print() {
+	cursor.CursorMutex.Lock() // Lock the cursor to avoid concurrent access
+	fmt.Printf("%s", cursor.HideCursor())
+	window.ClearArea(p.posX, p.posY, p.width, p.height)
+	fmt.Printf("%s", cursor.GotoXY(p.posX, p.posY))
+
+	leftSpace := p.Current
+	rightSpace := p.width - 2 - leftSpace - p.blockSize
+	bar := "[" + strings.Repeat(" ", leftSpace) + strings.Repeat("█", p.blockSize) + strings.Repeat(" ", rightSpace) + "]"
+	for i := 0; i < p.height; i++ {
+		fmt.Printf("%s", cursor.GotoXY(p.posX+i, p.posY))
+		fmt.Printf("%s", bar)
+	}
+	cursor.CursorMutex.Unlock() // Unlock the cursor
+}
+
+func (p *UncertainProgressBar) update() {
+	p.Current = (p.Current + p.direction) % (p.width - 2)
+	if p.Current == p.width-2-p.blockSize {
+		p.direction = -1
+	}
+	if p.Current == 0 {
+		p.direction = 1
+	}
+}
+
+func (p *UncertainProgressBar) Run(period time.Duration) {
+	if p.running {
+		return
+	}
+	ticker := time.NewTicker(period)
+	p.running = true
+	go func() {
+		defer func() {
+			ticker.Stop()
+			p.running = false
+		}()
+		for {
+			select {
+			case <-ticker.C:
+				p.Print()
+				p.update()
+			case <-p.interrupt:
+				return
+			}
+		}
+	}()
+}
+
+func (p *UncertainProgressBar) Stop() {
+	p.interrupt <- struct{}{}
 }
