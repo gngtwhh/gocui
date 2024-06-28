@@ -88,6 +88,7 @@ func unmarshalToken(token string) (ts []Token) {
 	legalTokens := []string{
 		"%bar", "%current", "%total", "%percent", "%elapsed", "%rate",
 	}
+
 	for len(token) > 0 {
 		if token[0] != '%' {
 			if idx := strings.IndexAny(token, "%"); idx == -1 {
@@ -98,6 +99,7 @@ func unmarshalToken(token string) (ts []Token) {
 				token = token[idx:]
 			}
 		}
+		ok := false // matched a legal token
 		for _, legalToken := range legalTokens {
 			if strings.HasPrefix(token, legalToken) {
 				token = token[len(legalToken):]
@@ -115,8 +117,13 @@ func unmarshalToken(token string) (ts []Token) {
 				case "%rate":
 					ts = append(ts, &TokenRate{})
 				}
+				ok = true
 				break
 			}
+		}
+		if !ok {
+			ts = append(ts, &TokenString{payload: "%"})
+			token = token[1:]
 		}
 	}
 	return
