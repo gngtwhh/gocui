@@ -2,11 +2,7 @@ package cursor
 
 import (
 	"fmt"
-	"sync"
 )
-
-// CursorMutex is a mutex to prevent concurrent access to the cursor.
-var CursorMutex sync.Mutex = sync.Mutex{}
 
 // GotoXY returns the escape sequence to move the cursor to the given position.
 func GotoXY(x, y int) string {
