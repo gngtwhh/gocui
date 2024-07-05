@@ -114,10 +114,10 @@ func (p *ProgressBar) Print() {
 		}
 	}
 
-	fmt.Printf("%s", cursor.HideCursor())
+	cursor.HideCursor()
 	window.ClearArea(p.posX, p.posY, p.width, p.height)
 	for i := 0; i < p.height; i++ {
-		fmt.Printf("%s", cursor.GotoXY(p.posX+i, p.posY))
+		cursor.GotoXY(p.posX+i, p.posY)
 		payloadBuilder := strings.Builder{}
 		for _, token := range p.tokens {
 			payloadBuilder.WriteString(getParamAndToString(token))
@@ -206,15 +206,15 @@ func (p *UncertainProgressBar) SetPos(posX, posY, width, height int) {
 
 func (p *UncertainProgressBar) Print() {
 	utils.ConsoleMutex.Lock() // Lock the cursor to avoid concurrent access
-	fmt.Printf("%s", cursor.HideCursor())
+	cursor.HideCursor()
 	window.ClearArea(p.posX, p.posY, p.width, p.height)
-	fmt.Printf("%s", cursor.GotoXY(p.posX, p.posY))
+	cursor.GotoXY(p.posX, p.posY)
 
 	leftSpace := p.Current
 	rightSpace := p.width - 2 - leftSpace - p.blockSize
 	bar := "[" + strings.Repeat(" ", leftSpace) + strings.Repeat("#", p.blockSize) + strings.Repeat(" ", rightSpace) + "]"
 	for i := 0; i < p.height; i++ {
-		fmt.Printf("%s", cursor.GotoXY(p.posX+i, p.posY))
+		cursor.GotoXY(p.posX+i, p.posY)
 		fmt.Printf("%s", bar)
 	}
 	utils.ConsoleMutex.Unlock() // Unlock the cursor

@@ -9,7 +9,8 @@ import (
 // ClearArea clears a rectangular area of the screen.
 func ClearArea(x, y, width, height int) {
 	for i := 0; i < height; i++ {
-		fmt.Printf("%s", cursor.GotoXY(x+i, y)+strings.Repeat(" ", width))
+		cursor.GotoXY(x+i, y)
+		fmt.Printf("%s", strings.Repeat(" ", width))
 	}
 }
 
@@ -18,7 +19,9 @@ func ClearLine(row int) {
 	if row < 0 {
 		fmt.Printf("%s", "\033[s\033[K\033[u")
 	} else {
-		fmt.Printf("%s", "\033[s"+cursor.GotoXY(row, 0)+"\033[K\033[u")
+		fmt.Printf("%s", "\033[s")
+		cursor.GotoXY(row, 0)
+		fmt.Printf("%s", "\033[K\033[u")
 	}
 }
 

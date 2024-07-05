@@ -65,6 +65,7 @@ func GetBox(row, col int, boxType string, payload []string) (box []string, err e
 func SetBoxAt(box []string, x, y int) {
 	row := len(box)
 	for i := 0; i < row; i++ {
-		fmt.Printf(cursor.GotoXY(x+i, y) + box[i])
+		cursor.GotoXY(x+i, y)
+		fmt.Print(box[i])
 	}
 }

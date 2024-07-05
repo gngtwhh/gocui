@@ -17,11 +17,13 @@ func Line(x, y, length int, ch rune, lineType uint8) {
 
 	if lineType == 0 {
 		for i := 0; i < length; i++ {
-			fmt.Printf("%s", cursor.GotoXY(x+i, y)+string(ch))
+			cursor.GotoXY(x+i, y)
+			fmt.Print(string(ch))
 		}
 	} else {
 		for i := 0; i < length; i++ {
-			fmt.Printf("%s", cursor.GotoXY(x, y+i)+string(ch))
+			cursor.GotoXY(x, y+i)
+			fmt.Print(string(ch))
 		}
 	}
 
@@ -45,11 +47,13 @@ func Curve(x, y, length, sign int, ch rune, f func(int) int) {
 			if x+i < 0 {
 				continue
 			}
-			fmt.Printf("%s", cursor.GotoXY(x+i, y+f(i))+string(ch))
+			cursor.GotoXY(x+i, y+f(i))
+			fmt.Print(string(ch))
 		}
 	} else {
 		for i := 0; i < length; i++ {
-			fmt.Printf("%s", cursor.GotoXY(x+i, y+f(i))+string(ch))
+			cursor.GotoXY(x+i, y+f(i))
+			fmt.Print(string(ch))
 		}
 	}
 
