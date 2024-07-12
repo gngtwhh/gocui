@@ -12,16 +12,6 @@ import (
 )
 
 func boxTest() {
-	/*payload := []string{
-		"                       图书管理系统        ",
-		"",
-		"                1.采编入库     2.添加用户   ",
-		"                3.借阅图书     4.归还图书   ",
-		"                5.所有图书     6.所有用户   ",
-		"                7.删除文件     8.退出系统   ",
-		"",
-		"                    请输入编号:",
-	}*/
 	payload := []string{
 		"          Books Management System",
 		"",
@@ -40,30 +30,42 @@ func boxTest() {
 func barTest() {
 	window.ClearScreen()
 	// test progress bar
-	p, _ := progress_bar.NewProgressBar("[%bar] %current/%total-%percent %rate", "", 100)
-	p.SetPos(0, 0, 52, 1)
-	p.Run(time.Millisecond * 100)
-
-	// test uncertain progress bar
-	//up := progress_bar.NewUncertainProgressBar()
-	//up.SetPos(11, 0, 52, 1)
-	//up.Run(time.Millisecond * 100)
-
+	p, _ := progress_bar.NewProgressBar("[%bar] %current/%total-%percent %rate", func(p *progress_bar.Property) {
+		p.Style.BarComplete = "@"
+		p.Style.BarIncomplete = "-"
+	})
+	p.Run(time.Millisecond * 30)
 	// wait
 	<-p.Done
-	//up.Stop()
-	fmt.Printf("%s", cursor.GotoXY(1, 0))
+
+	window.ClearScreen()
+
+	// test uncertain progress bar
+	up, _ := progress_bar.NewProgressBar("[%bar] testing ubar...", func(p *progress_bar.Property) {
+		p.Uncertain = true
+		p.Style.BarIncomplete = " "
+		p.Style.UnCertain = "<->"
+	})
+	up.Run(time.Millisecond * 100)
+	// wait 5s
+	time.Sleep(time.Second * 5)
+	up.Stop()
+
+	cursor.GotoXY(1, 0)
 	fmt.Println("time out. exit...")
 }
 
 func lineTest() {
 	drawCoord := func(x, y, length int) {
 		graph.Line(x, y, length, '|', 0)
-		fmt.Printf("%s", cursor.GotoXY(x+length, y)+"v")
+		cursor.GotoXY(x+length, y)
+		fmt.Printf("v")
 		length = 60
 		graph.Line(x, y, length, '-', 1)
-		fmt.Printf("%s", cursor.GotoXY(x, y+length)+">")
-		fmt.Printf("%s", cursor.GotoXY(x, y)+"+")
+		cursor.GotoXY(x, y+length)
+		fmt.Printf(">")
+		cursor.GotoXY(x, y)
+		fmt.Printf("+")
 	}
 
 	var x, y, length int
@@ -106,10 +108,22 @@ func lineTest() {
 
 }
 func main() {
-	//boxTest()
-	barTest()
-	//window.ClearScreen()
-	//lineTest()
 	c := '0'
-	_, _ = fmt.Scanf("%c", &c)
+	runList := []string{
+		//"boxTest",
+		"barTest",
+		//"lineTest",
+	}
+	funcs := map[string]func(){
+		"barTest":  barTest,
+		"lineTest": lineTest,
+		"boxTest":  boxTest,
+	}
+	for _, s := range runList {
+		if f, ok := funcs[s]; ok {
+			f()
+			_, _ = fmt.Scanf("%c", &c)
+		}
+	}
+
 }

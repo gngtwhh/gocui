@@ -7,16 +7,13 @@ import (
 	"time"
 )
 
-// Param is an alias for the empty interface and is used to give the toString method any type of parameter value.
-type Param = interface{}
-
-// Token is the interface that all tokens must implement.
-type Token interface {
-	toString(p ...Param) string
+// token is the interface that all style must implement.
+type token interface {
+	toString(p *Property) string
 }
 
-// Here are the tokens that can be used in the format string.
-// All tokens use the toString method to convert the tokens to a string for print.
+// Here are the style that can be used in the format string.
+// All style use the toString method to convert the style to a string for print.
 
 type TokenBar struct{}
 type TokenCurrent struct{}
@@ -29,59 +26,58 @@ type TokenString struct {
 }
 
 // toString prints the bar.
-// p should be left int,right int,block string
-// return " "*left + block + " "*right
-func (b *TokenBar) toString(p ...Param) string {
-	return strings.Repeat(" ", p[0].(int)) + p[2].(string) + strings.Repeat(" ", p[1].(int))
+func (b *TokenBar) toString(p *Property) string {
+	var repeatStr = func(s string, length int) string {
+		if len(s) == 0 {
+			return ""
+		}
+		return strings.Repeat(s, length/len(s)) + s[:length%len(s)]
+	}
+	if p.Uncertain {
+		leftSpace := p.Current
+		rightSpace := p.Width - leftSpace - len(p.Style.UnCertain)
+		return repeatStr(p.Style.BarIncomplete, leftSpace) + p.Style.UnCertain + repeatStr(p.Style.BarIncomplete, rightSpace)
+	} else {
+		completeLength := int(float64(p.Current) / float64(p.Total) * float64(p.Width))
+		return repeatStr(p.Style.BarComplete, completeLength) + repeatStr(p.Style.BarIncomplete, p.Width-completeLength)
+	}
 }
 
-// p should be current int
-// return "%d" of current
-func (c *TokenCurrent) toString(p ...Param) string {
-	return strconv.Itoa(p[0].(int))
+func (c *TokenCurrent) toString(p *Property) string {
+	return strconv.Itoa(p.Current)
 }
 
-// p should be total int
-// return "%d" of total
-func (t *TokenTotal) toString(p ...Param) string {
-	return strconv.Itoa(p[0].(int))
+func (t *TokenTotal) toString(p *Property) string {
+	return strconv.Itoa(p.Total)
 }
 
-// p should be current int,total int
-// return "dd.dd%"
-func (t *TokenPercent) toString(p ...Param) string {
+func (t *TokenPercent) toString(p *Property) string {
 	var percent float64
-	if p[0].(int) == 0 {
+	if p.Current == 0 {
 		percent = 0
 	} else {
-		percent = float64(p[0].(int)) / float64(p[1].(int)) * 100
+		percent = float64(p.Current) / float64(p.Total) * 100
 	}
 	// 保留2位小数
 	return fmt.Sprintf("%5.2f%%", percent)
 }
 
-// p should be time.Duration
-// return "dd.dds"
-func (t *TokenElapsed) toString(p ...Param) string {
-	return fmt.Sprintf("%5.2fs", p[0].(time.Duration).Seconds())
+func (t *TokenElapsed) toString(p *Property) string {
+	return fmt.Sprintf("%5.2fs", p.elapsed.Seconds())
 }
 
-// p should be time.Duration
-// return "dd.d ops/s"
-func (t *TokenRate) toString(p ...Param) string {
+func (t *TokenRate) toString(p *Property) string {
 	// ops/s
-	count := float64(time.Second) / float64(p[0].(time.Duration))
+	count := float64(time.Second) / float64(p.rate)
 	return fmt.Sprintf("%4.1f ops/s", count)
 }
 
-// p should be void
-// just return the payload of the string token
-func (s *TokenString) toString(p ...Param) string {
+func (s *TokenString) toString(p *Property) string {
 	return s.payload
 }
 
-// unmarshalToken converts the token string to a slice of tokens.
-func unmarshalToken(token string) (ts []Token) {
+// unmarshalToken converts the token string to a slice of style.
+func unmarshalToken(token string) (ts []token) {
 	if len(token) == 0 {
 		return
 	}
@@ -124,20 +120,6 @@ func unmarshalToken(token string) (ts []Token) {
 		if !ok {
 			ts = append(ts, &TokenString{payload: "%"})
 			token = token[1:]
-		}
-	}
-	return
-}
-
-func formatBarString(thisBar bar) (barString string) {
-	switch thisBar.(type) {
-	case *ProgressBar:
-		for _, token := range thisBar.(*ProgressBar).tokens {
-			barString += token.toString(thisBar)
-		}
-	case *UncertainProgressBar:
-		for _, token := range thisBar.(*UncertainProgressBar).tokens {
-			barString += token.toString(thisBar)
 		}
 	}
 	return
