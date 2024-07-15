@@ -11,9 +11,8 @@ import (
 // length - length of the line
 // ch - character to draw, 0 - horizontal, 1 - vertical
 func Line(x, y, length int, ch rune, lineType uint8) {
-	//utils.ConsoleMutex.Lock()
-
 	utils.ConsoleMutex.Lock()
+	defer utils.ConsoleMutex.Unlock()
 
 	if lineType == 0 {
 		for i := 0; i < length; i++ {
@@ -26,8 +25,6 @@ func Line(x, y, length int, ch rune, lineType uint8) {
 			fmt.Print(string(ch))
 		}
 	}
-
-	utils.ConsoleMutex.Unlock()
 }
 
 // Curve Draws a curve
@@ -37,10 +34,7 @@ func Line(x, y, length int, ch rune, lineType uint8) {
 // f - function that returns the y coordinate by the x coordinate
 func Curve(x, y, length, sign int, ch rune, f func(int) int) {
 	utils.ConsoleMutex.Lock()
-
-	//for i := 0; i < length; i++ {
-	//	fmt.Printf("%s", cursor.GotoXY(x+i, y+f(i))+string(ch))
-	//}
+	defer utils.ConsoleMutex.Unlock()
 
 	if sign < 0 {
 		for i := -length; i < 0; i++ {
@@ -56,6 +50,4 @@ func Curve(x, y, length, sign int, ch rune, f func(int) int) {
 			fmt.Print(string(ch))
 		}
 	}
-
-	utils.ConsoleMutex.Unlock()
 }

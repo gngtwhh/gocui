@@ -110,9 +110,9 @@ func lineTest() {
 func main() {
 	c := '0'
 	runList := []string{
-		//"boxTest",
 		"barTest",
-		//"lineTest",
+		"boxTest",
+		"lineTest",
 	}
 	funcs := map[string]func(){
 		"barTest":  barTest,

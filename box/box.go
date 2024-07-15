@@ -3,6 +3,7 @@ package box
 import (
 	"fmt"
 	"github.com/gngtwhh/gocui/cursor"
+	"github.com/gngtwhh/gocui/utils"
 	"strings"
 )
 
@@ -64,6 +65,8 @@ func GetBox(row, col int, boxType string, payload []string) (box []string, err e
 
 func SetBoxAt(box []string, x, y int) {
 	row := len(box)
+	utils.ConsoleMutex.Lock()
+	defer utils.ConsoleMutex.Unlock()
 	for i := 0; i < row; i++ {
 		cursor.GotoXY(x+i, y)
 		fmt.Print(box[i])
