@@ -24,6 +24,9 @@ type TokenRate struct{}
 type TokenString struct {
 	payload string
 }
+type TokenSpinner struct {
+	cur int8
+}
 
 // toString prints the bar.
 func (b *TokenBar) toString(p *Property) string {
@@ -36,10 +39,10 @@ func (b *TokenBar) toString(p *Property) string {
 	if p.Uncertain {
 		leftSpace := p.Current
 		rightSpace := p.Width - leftSpace - len(p.Style.UnCertain)
-		return repeatStr(p.Style.BarIncomplete, leftSpace) + p.Style.UnCertain + repeatStr(p.Style.BarIncomplete, rightSpace)
+		return repeatStr(p.Style.Incomplete, leftSpace) + p.Style.UnCertain + repeatStr(p.Style.Incomplete, rightSpace)
 	} else {
 		completeLength := int(float64(p.Current) / float64(p.Total) * float64(p.Width))
-		return repeatStr(p.Style.BarComplete, completeLength) + repeatStr(p.Style.BarIncomplete, p.Width-completeLength)
+		return repeatStr(p.Style.Complete, completeLength) + repeatStr(p.Style.Incomplete, p.Width-completeLength)
 	}
 }
 
@@ -76,13 +79,19 @@ func (s *TokenString) toString(p *Property) string {
 	return s.payload
 }
 
+func (s *TokenSpinner) toString(p *Property) string {
+	res := "\\|/-"[s.cur : s.cur+1]
+	s.cur = (s.cur + 1) % 4
+	return res
+}
+
 // unmarshalToken converts the token string to a slice of style.
 func unmarshalToken(token string) (ts []token) {
 	if len(token) == 0 {
 		return
 	}
 	legalTokens := []string{
-		"%bar", "%current", "%total", "%percent", "%elapsed", "%rate",
+		"%bar", "%current", "%total", "%percent", "%elapsed", "%rate", "%spinner",
 	}
 
 	for len(token) > 0 {
@@ -112,6 +121,8 @@ func unmarshalToken(token string) (ts []token) {
 					ts = append(ts, &TokenElapsed{})
 				case "%rate":
 					ts = append(ts, &TokenRate{})
+				case "%spinner":
+					ts = append(ts, &TokenSpinner{})
 				}
 				ok = true
 				break

@@ -18,7 +18,8 @@ type Property struct {
 	Uncertain      bool          // Whether the progress bar is Uncertain
 	rate, elapsed  time.Duration // rate is the rate of progress, elapsed is the elapsed time since call to Run()
 	Style          struct {
-		BarComplete, BarIncomplete, UnCertain string // The style of the progress bar
+		Complete, Incomplete, UnCertain                string // The style of the progress bar
+		CompleteColor, IncompleteColor, UnCertainColor string // The color of the progress bar
 	}
 }
 
@@ -30,7 +31,7 @@ type ProgressBar struct {
 	// private fields
 	style     []token
 	running   bool          // Whether the progress bar is running
-	direction int           // 1(default) for increasing, -1 for decreasing, only available when Uncertain is true
+	direction int           // 1(default) for increasing, -1 for decreasing, only available when UnCertain is true
 	interrupt chan struct{} // interrupt channel to stop Run()
 	rw        sync.RWMutex  // RWMutex to synchronize access to the progress bar
 	// public fields
@@ -50,9 +51,11 @@ func NewProgressBar(style string, mod ModFunc) (pb *ProgressBar, err error) {
 		Total: 100,
 		PosX:  0, PosY: 0, Width: 20,
 		Style: struct {
-			BarComplete, BarIncomplete, UnCertain string
-		}{"#", "-", "<->"},
+			Complete, Incomplete, UnCertain                string
+			CompleteColor, IncompleteColor, UnCertainColor string
+		}{"#", "-", "<->", cursor.WHITE, cursor.WHITE, cursor.WHITE},
 	}
+
 	if mod != nil {
 		mod(&property)
 	}
@@ -77,7 +80,7 @@ func (p *ProgressBar) Update(current int) {
 	}
 	p.rw.Lock()
 	if !p.Property.Uncertain {
-		p.Property.Current = min(current, p.Property.Width) // Uncertain bar use width to update the current progress
+		p.Property.Current = min(current, p.Property.Width) // UnCertain bar use width to update the current progress
 	} else {
 		p.Property.Current = min(current, p.Property.Total) // common bar use total to update the current progress
 	}

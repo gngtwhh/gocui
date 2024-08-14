@@ -1,6 +1,7 @@
-package main
+package gocui
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/gngtwhh/gocui/box"
 	"github.com/gngtwhh/gocui/cursor"
@@ -8,6 +9,8 @@ import (
 	"github.com/gngtwhh/gocui/progress_bar"
 	"github.com/gngtwhh/gocui/window"
 	"math"
+	"os"
+	"testing"
 	"time"
 )
 
@@ -31,24 +34,24 @@ func barTest() {
 	window.ClearScreen()
 	// test progress bar
 	p, _ := progress_bar.NewProgressBar("[%bar] %current/%total-%percent %rate", func(p *progress_bar.Property) {
-		p.Style.BarComplete = "@"
-		p.Style.BarIncomplete = "-"
+		p.Style.Complete = "#"
+		p.Style.Incomplete = "-"
 	})
-	p.Run(time.Millisecond * 30)
+	p.Run(time.Millisecond * 20)
 	// wait
 	<-p.Done
 
 	window.ClearScreen()
 
 	// test uncertain progress bar
-	up, _ := progress_bar.NewProgressBar("[%bar] testing ubar...", func(p *progress_bar.Property) {
+	up, _ := progress_bar.NewProgressBar("[%bar] testing ubar...%spinner", func(p *progress_bar.Property) {
 		p.Uncertain = true
-		p.Style.BarIncomplete = " "
-		p.Style.UnCertain = "<->"
+		p.Style.Incomplete = " "
+		p.Style.UnCertain = "👈🤣👉"
 	})
 	up.Run(time.Millisecond * 100)
 	// wait 5s
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 3)
 	up.Stop()
 
 	cursor.GotoXY(1, 0)
@@ -107,8 +110,8 @@ func lineTest() {
 	graph.Curve(x, y, length, -1, '*', f)
 
 }
-func main() {
-	c := '0'
+func TestMain(m *testing.M) {
+	//c := '0'
 	runList := []string{
 		"barTest",
 		"boxTest",
@@ -119,11 +122,12 @@ func main() {
 		"lineTest": lineTest,
 		"boxTest":  boxTest,
 	}
+	scanner := bufio.NewScanner(os.Stdin)
 	for _, s := range runList {
 		if f, ok := funcs[s]; ok {
 			f()
-			_, _ = fmt.Scanf("%c", &c)
+			//_, _ = fmt.Scanf("%c", &c)
+			scanner.Scan()
 		}
 	}
-
 }
