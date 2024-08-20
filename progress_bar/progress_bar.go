@@ -69,18 +69,24 @@ func NewProgressBar(style string, mod ModFunc) (pb *ProgressBar, err error) {
 		Done:      make(chan struct{}),
 		rw:        sync.RWMutex{},
 	}
+	close(pb.Done) // Close p.Done initially to indicate that p is not running.
 	return
 }
 
-// Update updates the current progress of the progress bar.
-// //If call by uncertain bar, it will just stop but do nothing.
+// Update updates the current progress of the progress bar and prints it.
+// In addition, if the bar is running, it will stop.
 func (p *ProgressBar) Update(current int) {
 	if p.running {
 		p.interrupt <- struct{}{}
+		//p.running = false // Needless: p.Run() will set p.running to false after stopping.
 	}
+	<-p.Done // Wait for the previous run to finish
 	p.rw.Lock()
-	if !p.Property.Uncertain {
-		p.Property.Current = min(current, p.Property.Width) // UnCertain bar use width to update the current progress
+	if p.Property.Uncertain {
+		p.Property.Current = min(current, p.Property.Width-len(p.Property.Style.UnCertain)) // UnCertain bar use width to update the current progress
+		if p.Property.Current == p.Property.Width-len(p.Property.Style.UnCertain) {
+			p.direction = -1
+		}
 	} else {
 		p.Property.Current = min(current, p.Property.Total) // common bar use total to update the current progress
 	}
@@ -117,7 +123,7 @@ func (p *ProgressBar) Run(period time.Duration) {
 		defer p.rw.Unlock()
 
 		if p.Property.Uncertain {
-			p.Property.Current = (p.Property.Current + p.direction) % (p.Property.Width)
+			p.Property.Current = p.Property.Current + p.direction
 			if p.Property.Current == p.Property.Width-len(p.Property.Style.UnCertain) {
 				p.direction = -1
 			}
@@ -136,11 +142,13 @@ func (p *ProgressBar) Run(period time.Duration) {
 
 	ticker := time.NewTicker(period)
 	p.running = true
+	p.Done = make(chan struct{})
 	p.Print() // Print the initial state
 	go func() {
 		defer func() {
 			ticker.Stop()
 			p.running = false
+			close(p.Done) // close p.Done to broadcast completion signal
 		}()
 		for {
 			select {
@@ -148,7 +156,6 @@ func (p *ProgressBar) Run(period time.Duration) {
 				p.Print()
 				if !p.Property.Uncertain && p.Property.Current == p.Property.Total ||
 					(p.Property.Uncertain && p.Property.Current == p.Property.Width) {
-					p.Done <- struct{}{}
 					return
 				}
 				update()
