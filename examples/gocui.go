@@ -1,4 +1,4 @@
-package gocui
+package main
 
 import (
 	"bufio"
@@ -10,7 +10,6 @@ import (
 	"github.com/gngtwhh/gocui/window"
 	"math"
 	"os"
-	"testing"
 	"time"
 )
 
@@ -37,10 +36,11 @@ func barTest() {
 		p.Style.Complete = "#"
 		p.Style.Incomplete = "-"
 	})
-	p.Run(time.Millisecond * 20)
+	p.Run(time.Millisecond * 30)
 	// wait
 	<-p.Done
 
+	time.Sleep(time.Second * 2)
 	window.ClearScreen()
 
 	// test uncertain progress bar
@@ -50,7 +50,8 @@ func barTest() {
 		p.Style.UnCertain = "👈🤣👉"
 	})
 	up.Run(time.Millisecond * 100)
-	// wait 5s
+
+	// wait 3s
 	time.Sleep(time.Second * 3)
 	up.Stop()
 
@@ -110,23 +111,23 @@ func lineTest() {
 	graph.Curve(x, y, length, -1, '*', f)
 
 }
-func TestMain(m *testing.M) {
+func main() {
 	//c := '0'
 	runList := []string{
 		"barTest",
 		"boxTest",
-		"lineTest",
+		//"lineTest",
 	}
 	funcs := map[string]func(){
 		"barTest":  barTest,
 		"lineTest": lineTest,
 		"boxTest":  boxTest,
 	}
+
 	scanner := bufio.NewScanner(os.Stdin)
 	for _, s := range runList {
 		if f, ok := funcs[s]; ok {
 			f()
-			//_, _ = fmt.Scanf("%c", &c)
 			scanner.Scan()
 		}
 	}
