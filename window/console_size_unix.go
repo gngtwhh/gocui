@@ -2,7 +2,10 @@
 
 package window
 
-import "syscall"
+import (
+	"syscall"
+	"unsafe"
+)
 
 func GetConsoleSize() (weight, height int) {
 	var sz struct {
