@@ -109,19 +109,25 @@ func lineTest() {
 	x, y, length = 10, 30, 15
 	graph.Curve(x, y, length, 1, '*', f)
 	graph.Curve(x, y, length, -1, '*', f)
-
 }
+func windowSizeTest() {
+	w, h := window.GetConsoleSize()
+	fmt.Printf("weight: %d, height: %d", w, h)
+}
+
 func main() {
 	//c := '0'
 	runList := []string{
-		"barTest",
+		//"barTest",
 		"boxTest",
 		//"lineTest",
+		"windowSizeTest",
 	}
 	funcs := map[string]func(){
-		"barTest":  barTest,
-		"lineTest": lineTest,
-		"boxTest":  boxTest,
+		"barTest":        barTest,
+		"lineTest":       lineTest,
+		"boxTest":        boxTest,
+		"windowSizeTest": windowSizeTest,
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)

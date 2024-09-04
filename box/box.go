@@ -45,6 +45,7 @@ func GetBox(row, col int, boxType string, payload []string) (box []string, err e
 	}
 	if row < 3 || col < 3 {
 		err = fmt.Errorf("row and col must be greater than 3")
+		return
 	}
 	box = append(box, string(useChar[2])+strings.Repeat(string(useChar[0]), col-2)+string(useChar[3]))
 	for i := 0; i < row-2; i++ {
