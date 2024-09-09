@@ -30,7 +30,7 @@ var fine = []rune{'─', '│', '┌', '┐', '└', '┘', '┬', '┴', '├',
 var bold = []rune{'━', '┃', '┏', '┓', '┗', '┛', '┳', '┻', '┣', '┫', '╋'}
 var double = []rune{'═', '║', '╔', '╗', '╚', '╝', '╦', '╩', '╠', '╣', '╬'}
 
-func GetBox(row, col int, boxType string, payload []string) (box []string, err error) {
+func GetBox(row, col int, boxType string, title string, payload []string) (box []string, err error) {
 	var useChar []rune
 	payloadCnt := len(payload)
 	switch boxType {
@@ -47,13 +47,19 @@ func GetBox(row, col int, boxType string, payload []string) (box []string, err e
 		err = fmt.Errorf("row and col must be greater than 3")
 		return
 	}
-	box = append(box, string(useChar[2])+strings.Repeat(string(useChar[0]), col-2)+string(useChar[3]))
+	if len(title) > col-2 {
+		title = title[:col-2] // 标题过长，截断
+	}
+	{
+		aLen := min(2, col-2-len(title))
+		box = append(box, string(useChar[2])+strings.Repeat(string(useChar[0]), aLen)+title+
+			strings.Repeat(string(useChar[0]), col-2-len(title)-aLen)+string(useChar[3]))
+	}
 	for i := 0; i < row-2; i++ {
 		//暂时无法在包含有非ASCII字符时正确对齐
 		if i < payloadCnt {
 			copyLen := min(col-2, len([]byte(payload[i])))
 			a := string([]byte(payload[i])[:copyLen])
-			//a := fmt.Sprintf("%*s", copyLen, payload[i]) //无法截断
 			b := strings.Repeat(" ", col-2-copyLen)
 			box = append(box, string(useChar[1])+a+b+string(useChar[1]))
 		} else {
