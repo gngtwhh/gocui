@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gngtwhh/gocui/box"
 	"github.com/gngtwhh/gocui/cursor"
+	"github.com/gngtwhh/gocui/font"
 	"github.com/gngtwhh/gocui/graph"
 	"github.com/gngtwhh/gocui/progress_bar"
 	"github.com/gngtwhh/gocui/window"
@@ -15,7 +16,6 @@ import (
 
 func boxTest() {
 	payload := []string{
-		"          Books Management System",
 		"",
 		" 1.Store new books    2.New user registration",
 		" 3.Borrow books       4.Return books",
@@ -25,7 +25,7 @@ func boxTest() {
 		"          Select operation number:",
 	}
 	window.ClearScreen()
-	aBox, _ := box.GetBox(len(payload)+2, 50+2, "bold", payload)
+	aBox, _ := box.GetBox(len(payload)+2, 50+2, "bold", "Books Management System", payload)
 	box.SetBoxAt(aBox, 0, 0)
 }
 
@@ -112,22 +112,72 @@ func lineTest() {
 }
 func windowSizeTest() {
 	w, h := window.GetConsoleSize()
-	fmt.Printf("weight: %d, height: %d", w, h)
+	fmt.Printf("Command info: weight: %d, height: %d", w, h)
+}
+
+func FontTest() {
+	fmt.Println("-----Testing text color-----")
+	fmt.Println(font.Decorate("Black", font.Black))
+	fmt.Println(font.Decorate("Red", font.Red))
+	fmt.Println(font.Decorate("Green", font.Green))
+	fmt.Println(font.Decorate("Yellow", font.Yellow))
+	fmt.Println(font.Decorate("Blue", font.Blue))
+	fmt.Println(font.Decorate("Magenta", font.Magenta))
+	fmt.Println(font.Decorate("Cyan", font.Cyan))
+	fmt.Println(font.Decorate("White", font.White))
+	fmt.Println(font.Decorate("LightBlack", font.LightBlack))
+	fmt.Println(font.Decorate("LightRed", font.LightRed))
+	fmt.Println(font.Decorate("LightGreen", font.LightGreen))
+	fmt.Println(font.Decorate("LightYellow", font.LightYellow))
+	fmt.Println(font.Decorate("LightBlue", font.LightBlue))
+	fmt.Println(font.Decorate("LightMagenta", font.LightMagenta))
+	fmt.Println(font.Decorate("LightCyan", font.LightCyan))
+	fmt.Println(font.Decorate("LightWhite", font.LightWhite))
+
+	fmt.Println("-----Testing background style-----")
+	fmt.Println(font.Decorate("BlackBg", font.BlackBg))
+	fmt.Println(font.Decorate("RedBg", font.RedBg))
+	fmt.Println(font.Decorate("GreenBg", font.GreenBg))
+	fmt.Println(font.Decorate("YellowBg", font.YellowBg))
+	fmt.Println(font.Decorate("BlueBg", font.BlueBg))
+	fmt.Println(font.Decorate("MagentaBg", font.MagentaBg))
+	fmt.Println(font.Decorate("CyanBg", font.CyanBg))
+	fmt.Println(font.Decorate("WhiteBg", font.WhiteBg))
+	fmt.Println(font.Decorate("LightBlackBg", font.LightBlackBg))
+	fmt.Println(font.Decorate("LightRedBg", font.LightRedBg))
+	fmt.Println(font.Decorate("LightGreenBg", font.LightGreenBg))
+	fmt.Println(font.Decorate("LightYellowBg", font.LightYellowBg))
+	fmt.Println(font.Decorate("LightBlueBg", font.LightBlueBg))
+	fmt.Println(font.Decorate("LightMagentaBg", font.LightMagentaBg))
+	fmt.Println(font.Decorate("LightCyanBg", font.LightCyanBg))
+	fmt.Println(font.Decorate("LightWhiteBg", font.LightWhiteBg))
+
+	fmt.Println("-----Testing font style-----")
+	fmt.Println(font.Decorate("Bold", font.Bold))
+	fmt.Println(font.Decorate("Dim", font.Dim))
+	fmt.Println(font.Decorate("Italic", font.Italic))
+	fmt.Println(font.Decorate("Underline", font.Underline))
+	fmt.Println(font.Decorate("BlinkSlow", font.BlinkSlow))
+	fmt.Println(font.Decorate("BlinkFast", font.BlinkFast))
+	fmt.Println(font.Decorate("Reverse", font.Reverse))
+	fmt.Println(font.Decorate("Hide", font.Hide))
 }
 
 func main() {
 	//c := '0'
 	runList := []string{
-		//"barTest",
+		"barTest",
 		"boxTest",
-		//"lineTest",
+		"lineTest",
 		"windowSizeTest",
+		"FontTest",
 	}
 	funcs := map[string]func(){
 		"barTest":        barTest,
 		"lineTest":       lineTest,
 		"boxTest":        boxTest,
 		"windowSizeTest": windowSizeTest,
+		"FontTest":       FontTest,
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -135,6 +185,9 @@ func main() {
 		if f, ok := funcs[s]; ok {
 			f()
 			scanner.Scan()
+			window.ClearScreen()
 		}
 	}
+
+	cursor.ShowCursor()
 }

@@ -3,6 +3,7 @@ package progress_bar
 import (
 	"fmt"
 	"github.com/gngtwhh/gocui/cursor"
+	"github.com/gngtwhh/gocui/font"
 	"github.com/gngtwhh/gocui/utils"
 	"github.com/gngtwhh/gocui/window"
 	"strings"
@@ -19,7 +20,7 @@ type Property struct {
 	rate, elapsed  time.Duration // rate is the rate of progress, elapsed is the elapsed time since call to Run()
 	Style          struct {
 		Complete, Incomplete, UnCertain                string // The style of the progress bar
-		CompleteColor, IncompleteColor, UnCertainColor string // The color of the progress bar
+		CompleteColor, IncompleteColor, UnCertainColor int    // The color of the progress bar
 	}
 }
 
@@ -52,8 +53,8 @@ func NewProgressBar(style string, mod ModFunc) (pb *ProgressBar, err error) {
 		PosX:  0, PosY: 0, Width: 20,
 		Style: struct {
 			Complete, Incomplete, UnCertain                string
-			CompleteColor, IncompleteColor, UnCertainColor string
-		}{"#", "-", "<->", cursor.WHITE, cursor.WHITE, cursor.WHITE},
+			CompleteColor, IncompleteColor, UnCertainColor int
+		}{"#", "-", "<->", font.White, font.White, font.White},
 	}
 
 	if mod != nil {
