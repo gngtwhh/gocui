@@ -18,10 +18,13 @@ type Property struct {
 	Width          int           // The Width of the token:"%bar"
 	Uncertain      bool          // Whether the progress bar is Uncertain
 	rate, elapsed  time.Duration // rate is the rate of progress, elapsed is the elapsed time since call to Run()
-	Style          struct {
-		Complete, Incomplete, UnCertain                string // The style of the progress bar
-		CompleteColor, IncompleteColor, UnCertainColor int    // The color of the progress bar
-	}
+	Style
+}
+
+// Style is the style struct in the Property struct, used to decorate the token "bar".
+type Style struct {
+	Complete, Incomplete, UnCertain                string // The style of the progress bar
+	CompleteColor, IncompleteColor, UnCertainColor int    // The color of the progress bar
 }
 
 // ModFunc is a function that modifies the Property of the progress bar.
@@ -40,28 +43,75 @@ type ProgressBar struct {
 	Done     chan struct{} // Done channel to signal completion
 }
 
+//// NewProgressBar creates a new progress bar that with the given style and total.
+//func NewProgressBar(style string, mod ModFunc) (pb *ProgressBar, err error) {
+//	if style == "" {
+//		return nil, fmt.Errorf("style cannot be empty")
+//	}
+//
+//	// modify the properties
+//	// default style
+//	property := Property{
+//		Total: 100,
+//		PosX:  0, PosY: 0, Width: 20,
+//		Style: Style{"#", "-", "<->", font.White, font.White, font.White},
+//	}
+//
+//	if mod != nil {
+//		mod(&property)
+//	}
+//
+//	styleTokens := unmarshalToken(style)
+//	pb = &ProgressBar{
+//		style:     styleTokens,
+//		Property:  property,
+//		direction: 1,
+//		interrupt: make(chan struct{}),
+//		Done:      make(chan struct{}),
+//		rw:        sync.RWMutex{},
+//	}
+//	close(pb.Done) // Close p.Done initially to indicate that p is not running.
+//	return
+//}
+
 // NewProgressBar creates a new progress bar that with the given style and total.
-func NewProgressBar(style string, mod ModFunc) (pb *ProgressBar, err error) {
+func NewProgressBar(style string, property Property) (pb *ProgressBar, err error) {
 	if style == "" {
 		return nil, fmt.Errorf("style cannot be empty")
 	}
 
 	// modify the properties
-	// default style
-	property := Property{
-		Total: 100,
-		PosX:  0, PosY: 0, Width: 20,
-		Style: struct {
-			Complete, Incomplete, UnCertain                string
-			CompleteColor, IncompleteColor, UnCertainColor int
-		}{"#", "-", "<->", font.White, font.White, font.White},
+	if property.Total == 0 {
+		property.Total = 100
+	}
+	if property.Uncertain || (property.Current < 0 || property.Current > property.Total) {
+		property.Current = 0
+	}
+	if property.Width <= 0 {
+		property.Width = 20
+	}
+	if property.Style.Complete == "" {
+		property.Style.Complete = "#"
+	}
+	if property.Style.Incomplete == "" {
+		property.Style.Incomplete = "-"
+	}
+	if property.Style.UnCertain == "" {
+		property.Style.UnCertain = "<->"
+	}
+	if property.Style.CompleteColor == font.RESET {
+		property.Style.CompleteColor = font.White
+	}
+	if property.Style.IncompleteColor == font.RESET {
+		property.Style.IncompleteColor = font.LightBlack
+	}
+	if property.Style.UnCertainColor == font.RESET {
+		property.Style.UnCertainColor = font.White
 	}
 
-	if mod != nil {
-		mod(&property)
-	}
-
+	// generate style tokens
 	styleTokens := unmarshalToken(style)
+	// create progress bar
 	pb = &ProgressBar{
 		style:     styleTokens,
 		Property:  property,
@@ -100,7 +150,6 @@ func (p *ProgressBar) Print() {
 	p.rw.RLock()              // Read lock to avoid race condition
 	utils.ConsoleMutex.Lock() // Lock the cursor to avoid concurrent access
 	{
-		cursor.HideCursor()
 		window.ClearArea(p.Property.PosX, p.Property.PosY, p.Property.Width, 1)
 		cursor.GotoXY(p.Property.PosX, p.Property.PosY)
 		payloadBuilder := strings.Builder{}

@@ -2,6 +2,7 @@ package progress_bar
 
 import (
 	"fmt"
+	"github.com/gngtwhh/gocui/font"
 	"strconv"
 	"strings"
 	"time"
@@ -39,10 +40,13 @@ func (b *TokenBar) toString(p *Property) string {
 	if p.Uncertain {
 		leftSpace := p.Current
 		rightSpace := p.Width - leftSpace - len(p.Style.UnCertain)
-		return repeatStr(p.Style.Incomplete, leftSpace) + p.Style.UnCertain + repeatStr(p.Style.Incomplete, rightSpace)
+		return font.Decorate(repeatStr(p.Style.Incomplete, leftSpace), p.Style.IncompleteColor) +
+			font.Decorate(p.Style.UnCertain, p.Style.UnCertainColor) +
+			font.Decorate(repeatStr(p.Style.Incomplete, rightSpace), p.Style.IncompleteColor)
 	} else {
 		completeLength := int(float64(p.Current) / float64(p.Total) * float64(p.Width))
-		return repeatStr(p.Style.Complete, completeLength) + repeatStr(p.Style.Incomplete, p.Width-completeLength)
+		return font.Decorate(repeatStr(p.Style.Complete, completeLength), p.Style.CompleteColor) +
+			font.Decorate(repeatStr(p.Style.Incomplete, p.Width-completeLength), p.Style.IncompleteColor)
 	}
 }
 

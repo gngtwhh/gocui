@@ -31,10 +31,15 @@ func boxTest() {
 
 func barTest() {
 	window.ClearScreen()
+	cursor.HideCursor()
 	// test progress bar
-	p, _ := progress_bar.NewProgressBar("[%bar] %current/%total-%percent %rate", func(p *progress_bar.Property) {
-		p.Style.Complete = "#"
-		p.Style.Incomplete = "-"
+	p, _ := progress_bar.NewProgressBar("[%bar] %current/%total-%percent %rate", progress_bar.Property{
+		Style: progress_bar.Style{
+			Complete:        "#",
+			Incomplete:      "-",
+			CompleteColor:   font.Green,
+			IncompleteColor: font.LightBlack,
+		},
 	})
 	p.Run(time.Millisecond * 30)
 	// wait
@@ -44,10 +49,13 @@ func barTest() {
 	window.ClearScreen()
 
 	// test uncertain progress bar
-	up, _ := progress_bar.NewProgressBar("[%bar] testing ubar...%spinner", func(p *progress_bar.Property) {
-		p.Uncertain = true
-		p.Style.Incomplete = " "
-		p.Style.UnCertain = "👈🤣👉"
+	up, _ := progress_bar.NewProgressBar("[%bar] testing ubar...%spinner", progress_bar.Property{
+		Uncertain: true,
+		Style: progress_bar.Style{
+			Incomplete:      " ",
+			UnCertain:       "👈🤣👉",
+			IncompleteColor: font.WhiteBg,
+		},
 	})
 	up.Run(time.Millisecond * 100)
 
@@ -84,8 +92,8 @@ func lineTest() {
 	}
 	x, y, length = 1, 2, 10
 	graph.Curve(x, y, length, 1, '*', f)
+	time.Sleep(time.Second * 2)
 
-	//time.Sleep(time.Second * 2)
 	window.ClearScreen()
 
 	// curve f(x)=sin(x)
@@ -96,6 +104,7 @@ func lineTest() {
 	}
 	x, y, length = 2, 30, 10
 	graph.Curve(x, y, length, 1, '*', f)
+	time.Sleep(time.Second * 2)
 
 	//time.Sleep(time.Second * 2)
 	window.ClearScreen()
@@ -110,6 +119,7 @@ func lineTest() {
 	graph.Curve(x, y, length, 1, '*', f)
 	graph.Curve(x, y, length, -1, '*', f)
 }
+
 func windowSizeTest() {
 	w, h := window.GetConsoleSize()
 	fmt.Printf("Command info: weight: %d, height: %d", w, h)
