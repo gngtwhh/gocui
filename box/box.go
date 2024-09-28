@@ -2,9 +2,10 @@ package box
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/gngtwhh/gocui/cursor"
 	"github.com/gngtwhh/gocui/utils"
-	"strings"
 )
 
 /**
@@ -24,11 +25,14 @@ const (
 	FINE = iota
 	BOLD
 	DOUBLE
+	ROUNDED
 )
 
+// Types of box
 var fine = []rune{'─', '│', '┌', '┐', '└', '┘', '┬', '┴', '├', '┤', '┼'}
 var bold = []rune{'━', '┃', '┏', '┓', '┗', '┛', '┳', '┻', '┣', '┫', '╋'}
 var double = []rune{'═', '║', '╔', '╗', '╚', '╝', '╦', '╩', '╠', '╣', '╬'}
+var rounded = []rune{'─', '│', '╭', '╮', '╰', '╯', '┬', '┴', '├', '┤', '┼'}
 
 func GetBox(row, col int, boxType string, title string, payload []string) (box []string, err error) {
 	var useChar []rune
@@ -40,6 +44,8 @@ func GetBox(row, col int, boxType string, title string, payload []string) (box [
 		useChar = bold
 	case "double":
 		useChar = double
+	case "rounded":
+		useChar = rounded
 	default:
 		useChar = fine
 	}

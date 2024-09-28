@@ -3,15 +3,16 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
+	"os"
+	"time"
+
 	"github.com/gngtwhh/gocui/box"
 	"github.com/gngtwhh/gocui/cursor"
 	"github.com/gngtwhh/gocui/font"
 	"github.com/gngtwhh/gocui/graph"
 	"github.com/gngtwhh/gocui/progress_bar"
 	"github.com/gngtwhh/gocui/window"
-	"math"
-	"os"
-	"time"
 )
 
 func boxTest() {
@@ -25,7 +26,8 @@ func boxTest() {
 		"          Select operation number:",
 	}
 	window.ClearScreen()
-	aBox, _ := box.GetBox(len(payload)+2, 50+2, "bold", "Books Management System", payload)
+	// aBox, _ := box.GetBox(len(payload)+2, 50+2, "bold", "Books Management System", payload)
+	aBox, _ := box.GetBox(len(payload)+2, 50+2, "rounded", "Books Management System", payload)
 	box.SetBoxAt(aBox, 0, 0)
 }
 
@@ -52,9 +54,8 @@ func barTest() {
 	up, _ := progress_bar.NewProgressBar("[%bar] testing ubar...%spinner", progress_bar.Property{
 		Uncertain: true,
 		Style: progress_bar.Style{
-			Incomplete:      " ",
-			UnCertain:       "👈🤣👉",
-			IncompleteColor: font.WhiteBg,
+			Incomplete: " ",
+			UnCertain:  "👈🤣👉",
 		},
 	})
 	up.Run(time.Millisecond * 100)
@@ -176,11 +177,11 @@ func FontTest() {
 func main() {
 	//c := '0'
 	runList := []string{
-		"barTest",
+		// "barTest",
 		"boxTest",
-		"lineTest",
-		"windowSizeTest",
-		"FontTest",
+		// "lineTest",
+		// "windowSizeTest",
+		// "FontTest",
 	}
 	funcs := map[string]func(){
 		"barTest":        barTest,
