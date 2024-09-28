@@ -34,10 +34,17 @@ var bold = []rune{'━', '┃', '┏', '┓', '┗', '┛', '┳', '┻', '┣',
 var double = []rune{'═', '║', '╔', '╗', '╚', '╝', '╦', '╩', '╠', '╣', '╬'}
 var rounded = []rune{'─', '│', '╭', '╮', '╰', '╯', '┬', '┴', '├', '┤', '┼'}
 
-func GetBox(row, col int, boxType string, title string, payload []string) (box []string, err error) {
+type Property struct {
+	Row, Col int    // min size of the box, 0 for auto
+	BoxType  string // box type
+	Title    string
+	Payload  []string
+}
+
+func GetBox(p Property) (box []string, err error) {
+	payloadCnt := len(p.Payload)
 	var useChar []rune
-	payloadCnt := len(payload)
-	switch boxType {
+	switch p.BoxType {
 	case "fine":
 		useChar = fine
 	case "bold":
@@ -49,23 +56,37 @@ func GetBox(row, col int, boxType string, title string, payload []string) (box [
 	default:
 		useChar = fine
 	}
-	if row < 3 || col < 3 {
-		err = fmt.Errorf("row and col must be greater than 3")
+	// calculate row and col
+	row, col := p.Row, p.Col
+	if (row < 2 && row != 0) || (col < 2 && col != 0) {
+		box = []string{}
+		err = fmt.Errorf("row and col must be greater than 2")
 		return
 	}
-	if len(title) > col-2 {
-		title = title[:col-2] // 标题过长，截断
+	if row == 0 {
+		row = len(p.Payload) + 2
 	}
+	if col == 0 {
+		for _, p := range p.Payload {
+			col = max(len(p), col)
+		}
+		col += 2
+	}
+	if len(p.Title) > col-2 {
+		p.Title = p.Title[:col-2] // 标题过长，截断
+	}
+	// generate title line of box
 	{
-		aLen := min(2, col-2-len(title))
-		box = append(box, string(useChar[2])+strings.Repeat(string(useChar[0]), aLen)+title+
-			strings.Repeat(string(useChar[0]), col-2-len(title)-aLen)+string(useChar[3]))
+		aLen := min(2, col-2-len(p.Title))
+		box = append(box, string(useChar[2])+strings.Repeat(string(useChar[0]), aLen)+p.Title+
+			strings.Repeat(string(useChar[0]), col-2-len(p.Title)-aLen)+string(useChar[3]))
 	}
 	for i := 0; i < row-2; i++ {
 		//暂时无法在包含有非ASCII字符时正确对齐
+
 		if i < payloadCnt {
-			copyLen := min(col-2, len([]byte(payload[i])))
-			a := string([]byte(payload[i])[:copyLen])
+			copyLen := min(col-2, len([]byte(p.Payload[i])))
+			a := string([]byte(p.Payload[i])[:copyLen])
 			b := strings.Repeat(" ", col-2-copyLen)
 			box = append(box, string(useChar[1])+a+b+string(useChar[1]))
 		} else {
