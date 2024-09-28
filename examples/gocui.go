@@ -18,7 +18,7 @@ import (
 func boxTest() {
 	payload := []string{
 		"",
-		" 1.Store new books    2.New user registration",
+		" 1.Store new books    2.New user registration ",
 		" 3.Borrow books       4.Return books",
 		" 5.All books          6.All user",
 		" 7.Delete database    8.Log out",
@@ -27,7 +27,11 @@ func boxTest() {
 	}
 	window.ClearScreen()
 	// aBox, _ := box.GetBox(len(payload)+2, 50+2, "bold", "Books Management System", payload)
-	aBox, _ := box.GetBox(len(payload)+2, 50+2, "rounded", "Books Management System", payload)
+	aBox, _ := box.GetBox(box.Property{
+		BoxType: "rounded",
+		Title:   "Books Management System",
+		Payload: payload,
+	})
 	box.SetBoxAt(aBox, 0, 0)
 }
 
