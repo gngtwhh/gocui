@@ -112,9 +112,9 @@ func NewProgressBar(style string, property Property) (pb *ProgressBar, err error
 	return
 }
 
-// Update updates the current progress of the progress bar and prints it.
+// UpdateTo updates the current progress of the progress bar and prints it.
 // In addition, if the bar is running, it will stop.
-func (p *ProgressBar) Update(current int) {
+func (p *ProgressBar) UpdateTo(current int) {
 	if p.running {
 		p.interrupt <- struct{}{}
 		//p.running = false // Needless: p.Run() will set p.running to false after stopping.
@@ -130,6 +130,32 @@ func (p *ProgressBar) Update(current int) {
 		p.Property.Current = min(current, p.Property.Total) // common bar use total to update the current progress
 	}
 	p.rw.Unlock()
+	p.Print()
+}
+
+// updateCurrent increase the current progress without printing the progress bar.
+func (p *ProgressBar) updateCurrent() {
+	p.rw.Lock()
+	if p.Property.Uncertain {
+		p.Property.Current = min(p.Property.Current, p.Property.Width-len(p.Property.Style.UnCertain)) // UnCertain bar use width to update the current progress
+		if p.Property.Current == p.Property.Width-len(p.Property.Style.UnCertain) {
+			p.direction = -1
+		}
+	} else {
+		p.Property.Current = min(p.Property.Current+1, p.Property.Total) // common bar use total to update the current progress
+	}
+	p.rw.Unlock()
+}
+
+// Update increase the current progress of the progress bar and prints it.
+// In addition, if the bar is running, it will stop.
+func (p *ProgressBar) Update() {
+	if p.running {
+		p.interrupt <- struct{}{}
+		//p.running = false // Needless: p.Run() will set p.running to false after stopping.
+	}
+	<-p.Done // Wait for the previous run to finish
+	p.updateCurrent()
 	p.Print()
 }
 
@@ -208,4 +234,24 @@ func (p *ProgressBar) Run(period time.Duration) {
 func (p *ProgressBar) Stop() {
 	p.interrupt <- struct{}{}
 	p.running = false
+}
+
+// Iter return a channel that can be used to iterate over the progress bar.
+// This method should not be used if the progress bar is uncertain or running.
+// And if you call this method in either case, the return value will be a closed channel.
+func (p *ProgressBar) Iter() <-chan int {
+	ch := make(chan int)
+	if p.running || p.Property.Uncertain {
+		close(ch)
+		return ch
+	}
+	go func() {
+		defer close(ch)
+		for i := p.Property.Current; i <= p.Property.Total; i++ {
+			p.Print()
+			ch <- i
+			p.updateCurrent()
+		}
+	}()
+	return ch
 }

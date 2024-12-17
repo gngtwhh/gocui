@@ -45,7 +45,7 @@ type TokenString struct{ payload string }
 type TokenSpinner struct{ cur int8 }
 type TokenPercentage struct{}
 
-// toString prints the bar.
+// toString implements the interface
 func (b *TokenBar) toString(p *Property) string {
 	var repeatStr = func(s string, length int) string {
 		if len(s) == 0 {

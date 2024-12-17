@@ -48,9 +48,12 @@ func barTest() {
 			IncompleteColor: font.LightBlack,
 		},
 	})
-	p.Run(time.Millisecond * 30)
-	// wait
-	<-p.Done
+	for _ = range p.Iter() {
+		time.Sleep(time.Millisecond * 30)
+	}
+	//p.Run(time.Millisecond * 30)
+	//// wait
+	//<-p.Done
 
 	time.Sleep(time.Second * 2)
 	window.ClearScreen()
@@ -71,9 +74,14 @@ func barTest() {
 
 	// test Default Bar
 	p = progress_bar.DefaultBar
-	p.Run(time.Millisecond * 100)
-	// wait
-	<-p.Done
+	for i := range p.Iter() {
+		//fmt.Printf("i=%d\n", i)
+		fmt.Printf("%d", i)
+		time.Sleep(time.Millisecond * 100)
+	}
+	//p.Run(time.Millisecond * 100)
+	//// wait
+	//<-p.Done
 
 	cursor.GotoXY(1, 0)
 	fmt.Println("time out. exit...")
