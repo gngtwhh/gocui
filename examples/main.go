@@ -38,6 +38,7 @@ func boxTest() {
 func barTest() {
 	window.ClearScreen()
 	cursor.HideCursor()
+
 	// test progress bar
 	p, _ := progress_bar.NewProgressBar("[%bar] %current/%total-%percent %rate", progress_bar.Property{
 		Style: progress_bar.Style{
@@ -67,6 +68,12 @@ func barTest() {
 	// wait 3s
 	time.Sleep(time.Second * 3)
 	up.Stop()
+
+	// test Default Bar
+	p = progress_bar.DefaultBar
+	p.Run(time.Millisecond * 100)
+	// wait
+	<-p.Done
 
 	cursor.GotoXY(1, 0)
 	fmt.Println("time out. exit...")
@@ -127,7 +134,7 @@ func lineTest() {
 
 func windowSizeTest() {
 	w, h := window.GetConsoleSize()
-	fmt.Printf("Command info: weight: %d, height: %d", w, h)
+	fmt.Printf("Command info: weight: %d, height: %d\n", w, h)
 }
 
 func FontTest() {
@@ -181,10 +188,10 @@ func FontTest() {
 func main() {
 	//c := '0'
 	runList := []string{
-		// "barTest",
-		"boxTest",
+		"barTest",
+		//"boxTest",
 		// "lineTest",
-		// "windowSizeTest",
+		"windowSizeTest",
 		// "FontTest",
 	}
 	funcs := map[string]func(){

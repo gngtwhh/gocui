@@ -11,12 +11,31 @@ import (
 	"time"
 )
 
+// DefaultBar is a pre-created default progress bar style
+var DefaultBar *ProgressBar
+
+func init() {
+	var err error
+	DefaultBar, err = NewProgressBar("%percent|%bar|%current/%total %elapsed %rate", Property{
+		Style: Style{
+			Complete:        " ",
+			Incomplete:      " ",
+			CompleteColor:   font.WhiteBg,
+			IncompleteColor: font.RESET,
+		},
+		Total: 100,
+	})
+	if err != nil {
+		panic(err)
+	}
+}
+
 // Property is the Property of the progress bar.
 type Property struct {
 	Total, Current int           // Only available when Uncertain is false
 	PosX, PosY     int           // The position of the progress bar on the screen
 	Width          int           // The Width of the token:"%bar"
-	Uncertain      bool          // Whether the progress bar is Uncertain
+	Uncertain      bool          // Whether the progress bar is Uncertain, default: false
 	rate, elapsed  time.Duration // rate is the rate of progress, elapsed is the elapsed time since call to Run()
 	Style
 }
@@ -42,37 +61,6 @@ type ProgressBar struct {
 	Property Property
 	Done     chan struct{} // Done channel to signal completion
 }
-
-//// NewProgressBar creates a new progress bar that with the given style and total.
-//func NewProgressBar(style string, mod ModFunc) (pb *ProgressBar, err error) {
-//	if style == "" {
-//		return nil, fmt.Errorf("style cannot be empty")
-//	}
-//
-//	// modify the properties
-//	// default style
-//	property := Property{
-//		Total: 100,
-//		PosX:  0, PosY: 0, Width: 20,
-//		Style: Style{"#", "-", "<->", font.White, font.White, font.White},
-//	}
-//
-//	if mod != nil {
-//		mod(&property)
-//	}
-//
-//	styleTokens := unmarshalToken(style)
-//	pb = &ProgressBar{
-//		style:     styleTokens,
-//		Property:  property,
-//		direction: 1,
-//		interrupt: make(chan struct{}),
-//		Done:      make(chan struct{}),
-//		rw:        sync.RWMutex{},
-//	}
-//	close(pb.Done) // Close p.Done initially to indicate that p is not running.
-//	return
-//}
 
 // NewProgressBar creates a new progress bar that with the given style and total.
 func NewProgressBar(style string, property Property) (pb *ProgressBar, err error) {

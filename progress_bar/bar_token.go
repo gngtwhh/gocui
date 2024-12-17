@@ -8,6 +8,25 @@ import (
 	"time"
 )
 
+/**************************************************
+ * Currently supported tokens:
+ * %string: Regular string
+ * %bar: The body of the progress bar
+ * %current: Current progress value
+ * %total: Total progress value
+ * %elapsed: The elapsed time of the progress bar
+ * %rate: Speed of the progress bar
+ * %spinner: A rotator character
+ **************************************************/
+
+var legalTokens []string
+
+func init() {
+	legalTokens = []string{
+		"%bar", "%current", "%total", "%percent", "%elapsed", "%rate", "%spinner",
+	}
+}
+
 // token is the interface that all style must implement.
 type token interface {
 	toString(p *Property) string
@@ -22,12 +41,9 @@ type TokenTotal struct{}
 type TokenPercent struct{}
 type TokenElapsed struct{}
 type TokenRate struct{}
-type TokenString struct {
-	payload string
-}
-type TokenSpinner struct {
-	cur int8
-}
+type TokenString struct{ payload string }
+type TokenSpinner struct{ cur int8 }
+type TokenPercentage struct{}
 
 // toString prints the bar.
 func (b *TokenBar) toString(p *Property) string {
@@ -59,14 +75,14 @@ func (t *TokenTotal) toString(p *Property) string {
 }
 
 func (t *TokenPercent) toString(p *Property) string {
-	var percent float64
+	var percent int
 	if p.Current == 0 {
 		percent = 0
 	} else {
-		percent = float64(p.Current) / float64(p.Total) * 100
+		percent = int(float64(p.Current) / float64(p.Total) * 100)
 	}
 	// 保留2位小数
-	return fmt.Sprintf("%5.2f%%", percent)
+	return fmt.Sprintf("%3d%%", percent)
 }
 
 func (t *TokenElapsed) toString(p *Property) string {
@@ -94,21 +110,13 @@ func unmarshalToken(token string) (ts []token) {
 	if len(token) == 0 {
 		return
 	}
-	legalTokens := []string{
-		"%bar", "%current", "%total", "%percent", "%elapsed", "%rate", "%spinner",
-	}
 
+	ok := false // Whether a valid token is matched
 	for len(token) > 0 {
+		ok = false
 		if token[0] != '%' {
-			if idx := strings.IndexAny(token, "%"); idx == -1 {
-				ts = append(ts, &TokenString{payload: token})
-				break
-			} else {
-				ts = append(ts, &TokenString{payload: token[:idx]})
-				token = token[idx:]
-			}
+			goto commonString
 		}
-		ok := false // matched a legal token
 		for _, legalToken := range legalTokens {
 			if strings.HasPrefix(token, legalToken) {
 				token = token[len(legalToken):]
@@ -132,9 +140,18 @@ func unmarshalToken(token string) (ts []token) {
 				break
 			}
 		}
-		if !ok {
-			ts = append(ts, &TokenString{payload: "%"})
-			token = token[1:]
+		if ok && len(token) == 0 {
+			break
+		}
+	commonString:
+		if token[0] != '%' || !ok {
+			if idx := strings.IndexAny(token[1:], "%"); idx == -1 {
+				ts = append(ts, &TokenString{payload: token})
+				break
+			} else {
+				ts = append(ts, &TokenString{payload: token[:idx+1]})
+				token = token[idx+1:]
+			}
 		}
 	}
 	return
