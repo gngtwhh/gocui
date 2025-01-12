@@ -63,6 +63,14 @@ func SetColor(color int) {
 	fmt.Printf("\033[%dm", color)
 }
 
+func SetColorRgb(r, g, b int, bg bool) {
+	if bg {
+		fmt.Printf("\033[48;2;%d;%d;%dm", r, g, b)
+	} else {
+		fmt.Printf("\033[38;2;%d;%d;%dm", r, g, b)
+	}
+}
+
 func ResetColor() {
 	fmt.Printf("\033[%dm", RESET)
 }
