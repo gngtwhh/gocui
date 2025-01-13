@@ -1,4 +1,4 @@
-package progress_bar
+package pb
 
 import (
 	"fmt"
@@ -29,7 +29,8 @@ func init() {
 
 // token is the interface that all style must implement.
 type token interface {
-	toString(p *Property) string
+	//toString(p *Property) string
+	toString(ctx *Context) string
 }
 
 // Here are the style that can be used in the format string.
@@ -46,60 +47,61 @@ type TokenSpinner struct{ cur int8 }
 type TokenPercentage struct{}
 
 // toString implements the interface
-func (b *TokenBar) toString(p *Property) string {
+func (b *TokenBar) toString(ctx *Context) string {
 	var repeatStr = func(s string, length int) string {
 		if len(s) == 0 {
 			return ""
 		}
 		return strings.Repeat(s, length/len(s)) + s[:length%len(s)]
 	}
+	p := &ctx.property
 	if p.Uncertain {
-		leftSpace := p.Current
+		leftSpace := ctx.current
 		rightSpace := p.Width - leftSpace - len(p.Style.UnCertain)
 		return font.Decorate(repeatStr(p.Style.Incomplete, leftSpace), p.Style.IncompleteColor) +
 			font.Decorate(p.Style.UnCertain, p.Style.UnCertainColor) +
 			font.Decorate(repeatStr(p.Style.Incomplete, rightSpace), p.Style.IncompleteColor)
 	} else {
-		completeLength := int(float64(p.Current) / float64(p.Total) * float64(p.Width))
+		completeLength := int(float64(ctx.current) / float64(p.Total) * float64(p.Width))
 		return font.Decorate(repeatStr(p.Style.Complete, completeLength), p.Style.CompleteColor) +
 			font.Decorate(repeatStr(p.Style.Incomplete, p.Width-completeLength), p.Style.IncompleteColor)
 	}
 }
 
-func (c *TokenCurrent) toString(p *Property) string {
-	return strconv.Itoa(p.Current)
+func (c *TokenCurrent) toString(ctx *Context) string {
+	return strconv.Itoa(ctx.current)
 }
 
-func (t *TokenTotal) toString(p *Property) string {
-	return strconv.Itoa(p.Total)
+func (t *TokenTotal) toString(ctx *Context) string {
+	return strconv.Itoa(ctx.property.Total)
 }
 
-func (t *TokenPercent) toString(p *Property) string {
+func (t *TokenPercent) toString(ctx *Context) string {
 	var percent int
-	if p.Current == 0 {
+	if ctx.current == 0 {
 		percent = 0
 	} else {
-		percent = int(float64(p.Current) / float64(p.Total) * 100)
+		percent = int(float64(ctx.current) / float64(ctx.property.Total) * 100)
 	}
 	// 保留2位小数
 	return fmt.Sprintf("%3d%%", percent)
 }
 
-func (t *TokenElapsed) toString(p *Property) string {
-	return fmt.Sprintf("%5.2fs", p.elapsed.Seconds())
+func (t *TokenElapsed) toString(ctx *Context) string {
+	return fmt.Sprintf("%5.2fs", ctx.property.elapsed.Seconds())
 }
 
-func (t *TokenRate) toString(p *Property) string {
+func (t *TokenRate) toString(ctx *Context) string {
 	// ops/s
-	count := float64(time.Second) / float64(p.rate)
+	count := float64(time.Second) / float64(ctx.property.rate)
 	return fmt.Sprintf("%4.1f ops/s", count)
 }
 
-func (s *TokenString) toString(p *Property) string {
+func (s *TokenString) toString(ctx *Context) string {
 	return s.payload
 }
 
-func (s *TokenSpinner) toString(p *Property) string {
+func (s *TokenSpinner) toString(ctx *Context) string {
 	res := "\\|/-"[s.cur : s.cur+1]
 	s.cur = (s.cur + 1) % 4
 	return res

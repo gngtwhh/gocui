@@ -11,7 +11,7 @@ import (
 	"github.com/gngtwhh/gocui/cursor"
 	"github.com/gngtwhh/gocui/font"
 	"github.com/gngtwhh/gocui/graph"
-	"github.com/gngtwhh/gocui/progress_bar"
+	"github.com/gngtwhh/gocui/pb"
 	"github.com/gngtwhh/gocui/window"
 )
 
@@ -35,55 +35,95 @@ func boxTest() {
 	box.SetBoxAt(aBox, 0, 0)
 }
 
+//func barTestOld() {
+//	window.ClearScreen()
+//	cursor.HideCursor()
+//
+//	// test progress bar
+//	p, _ := pb.NewProgressBar("[%bar] %current/%total-%percent %rate", pb.Property{
+//		Style: pb.Style{
+//			Complete:        "#",
+//			Incomplete:      "-",
+//			CompleteColor:   font.Green,
+//			IncompleteColor: font.LightBlack,
+//		},
+//	})
+//	for _ = range p.Iter() {
+//		time.Sleep(time.Millisecond * 30)
+//	}
+//	//p.Run(time.Millisecond * 30)
+//	//// wait
+//	//<-p.Done
+//
+//	time.Sleep(time.Second * 2)
+//	window.ClearScreen()
+//
+//	// test uncertain progress bar
+//	up, _ := pb.NewProgressBar("[%bar] testing ubar...%spinner", pb.Property{
+//		Uncertain: true,
+//		Style: pb.Style{
+//			Incomplete: " ",
+//			UnCertain:  "👈🤣👉",
+//		},
+//	})
+//	up.Run(time.Millisecond * 100)
+//
+//	// wait 3s
+//	time.Sleep(time.Second * 3)
+//	up.Stop()
+//
+//	// test Default Bar
+//	p = pb.DefaultBar
+//	for i := range p.Iter() {
+//		//fmt.Printf("i=%d\n", i)
+//		fmt.Printf("%d", i)
+//		time.Sleep(time.Millisecond * 100)
+//	}
+//	//p.Run(time.Millisecond * 100)
+//	//// wait
+//	//<-p.Done
+//
+//	cursor.GotoXY(1, 0)
+//	fmt.Println("time out. exit...")
+//}
+
 func barTest() {
-	window.ClearScreen()
 	cursor.HideCursor()
+	window.ClearScreen()
+
+	// test Default Bar
+	p := pb.DefaultBar
+	it, _ := p.Iter()
+	for range it {
+		//fmt.Printf("i=%d\n", i)
+		time.Sleep(time.Millisecond * 50) // Simulate some time-consuming task
+	}
 
 	// test progress bar
-	p, _ := progress_bar.NewProgressBar("[%bar] %current/%total-%percent %rate", progress_bar.Property{
-		Style: progress_bar.Style{
+	p, _ = pb.NewProgressBar("[%bar] %current/%total-%percent %rate", pb.WithPos(1, 0),
+		pb.WithStyle(pb.Style{
 			Complete:        "#",
 			Incomplete:      "-",
 			CompleteColor:   font.Green,
 			IncompleteColor: font.LightBlack,
-		},
-	})
-	for _ = range p.Iter() {
-		time.Sleep(time.Millisecond * 30)
+		}))
+	it, _ = p.Iter()
+	for range it {
+		time.Sleep(time.Millisecond * 30) // Simulate some time-consuming task
 	}
-	//p.Run(time.Millisecond * 30)
-	//// wait
-	//<-p.Done
 
-	time.Sleep(time.Second * 2)
-	window.ClearScreen()
-
-	// test uncertain progress bar
-	up, _ := progress_bar.NewProgressBar("[%bar] testing ubar...%spinner", progress_bar.Property{
-		Uncertain: true,
-		Style: progress_bar.Style{
+	//test uncertain progress bar
+	up, _ := pb.NewProgressBar("[%bar] testing ubar...%spinner", pb.WithUncertain(), pb.WithPos(2, 0),
+		pb.WithStyle(pb.Style{
 			Incomplete: " ",
 			UnCertain:  "👈🤣👉",
-		},
-	})
-	up.Run(time.Millisecond * 100)
+		}))
+	//stop := up.Run(time.Millisecond * 100)
+	stop := up.Run(0)
+	time.Sleep(time.Second * 3) // Simulate a 3-second time-consuming task
+	close(stop)
 
-	// wait 3s
-	time.Sleep(time.Second * 3)
-	up.Stop()
-
-	// test Default Bar
-	p = progress_bar.DefaultBar
-	for i := range p.Iter() {
-		//fmt.Printf("i=%d\n", i)
-		fmt.Printf("%d", i)
-		time.Sleep(time.Millisecond * 100)
-	}
-	//p.Run(time.Millisecond * 100)
-	//// wait
-	//<-p.Done
-
-	cursor.GotoXY(1, 0)
+	cursor.GotoXY(3, 0)
 	fmt.Println("time out. exit...")
 }
 
@@ -199,7 +239,7 @@ func main() {
 		"barTest",
 		//"boxTest",
 		// "lineTest",
-		"windowSizeTest",
+		//"windowSizeTest",
 		// "FontTest",
 	}
 	funcs := map[string]func(){
