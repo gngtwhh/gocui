@@ -56,7 +56,7 @@ func WithUncertain() ModFunc {
 	}
 }
 
-// WithStyle sets the style of the progress bar.
+// WithStyle sets the tokens of the progress bar.
 func WithStyle(s Style) ModFunc {
 	return func(p *Property) {
 		p.Style = s
@@ -68,5 +68,6 @@ func WithStyle(s Style) ModFunc {
 func WithFormat(f string) ModFunc {
 	return func(p *Property) {
 		p.Format = f
+		p.formatChanged = true
 	}
 }

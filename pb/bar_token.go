@@ -27,21 +27,21 @@ func init() {
 	}
 }
 
-// token is the interface that all style must implement.
+// token is the interface that all tokens must implement.
 type token interface {
 	//toString(p *Property) string
 	toString(ctx *Context) string
 }
 
-// Here are the style that can be used in the format string.
-// All style use the toString method to convert the style to a string for print.
+// Here are the tokens that can be used in the format string.
+// All tokens use the toString method to convert the tokens to a string for print.
 
 type TokenBar struct{}
 type TokenCurrent struct{}
 type TokenTotal struct{}
 type TokenPercent struct{}
 type TokenElapsed struct{}
-type TokenRate struct{}
+type TokenRate struct{ lastTime time.Time }
 type TokenString struct{ payload string }
 type TokenSpinner struct{ cur int8 }
 type TokenPercentage struct{}
@@ -88,13 +88,19 @@ func (t *TokenPercent) toString(ctx *Context) string {
 }
 
 func (t *TokenElapsed) toString(ctx *Context) string {
-	return fmt.Sprintf("%5.2fs", ctx.property.elapsed.Seconds())
+	//return fmt.Sprintf("%5.2fs", ctx.property.elapsed.Seconds())
+	return fmt.Sprintf("%5.2fs", time.Since(ctx.startTime).Seconds())
 }
 
 func (t *TokenRate) toString(ctx *Context) string {
-	// ops/s
-	count := float64(time.Second) / float64(ctx.property.rate)
-	return fmt.Sprintf("%4.1f ops/s", count)
+	// curTime - t.lastTime
+	if t.lastTime.IsZero() {
+		t.lastTime = time.Now()
+		return "0.00 ops/s"
+	}
+	duration := float64(time.Second) / float64(time.Now().Sub(t.lastTime))
+	t.lastTime = time.Now()
+	return fmt.Sprintf("%4.1f ops/s", duration)
 }
 
 func (s *TokenString) toString(ctx *Context) string {
@@ -107,7 +113,7 @@ func (s *TokenSpinner) toString(ctx *Context) string {
 	return res
 }
 
-// unmarshalToken converts the token string to a slice of style.
+// unmarshalToken converts the token string to a slice of tokens.
 func unmarshalToken(token string) (ts []token) {
 	if len(token) == 0 {
 		return

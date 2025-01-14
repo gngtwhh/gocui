@@ -40,7 +40,7 @@ func boxTest() {
 //	cursor.HideCursor()
 //
 //	// test progress bar
-//	p, _ := pb.NewProgressBar("[%bar] %current/%total-%percent %rate", pb.Property{
+//	p, _ := pb.NewProgressBar("[%bar] %current/%total-%percent %rate", pb.property{
 //		Style: pb.Style{
 //			Complete:        "#",
 //			Incomplete:      "-",
@@ -59,7 +59,7 @@ func boxTest() {
 //	window.ClearScreen()
 //
 //	// test uncertain progress bar
-//	up, _ := pb.NewProgressBar("[%bar] testing ubar...%spinner", pb.Property{
+//	up, _ := pb.NewProgressBar("[%bar] testing ubar...%spinner", pb.property{
 //		Uncertain: true,
 //		Style: pb.Style{
 //			Incomplete: " ",
@@ -118,10 +118,12 @@ func barTest() {
 			Incomplete: " ",
 			UnCertain:  "👈🤣👉",
 		}))
-	//stop := up.Run(time.Millisecond * 100)
-	stop := up.Run(0)
+	stop := up.Run(time.Millisecond * 100)
+	_ = up.UpdateProperty(pb.WithPos(5, 0))
+	stop2 := up.Run(time.Millisecond * 200)
 	time.Sleep(time.Second * 3) // Simulate a 3-second time-consuming task
 	close(stop)
+	close(stop2)
 
 	cursor.GotoXY(3, 0)
 	fmt.Println("time out. exit...")

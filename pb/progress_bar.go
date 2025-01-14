@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// DefaultBar is a pre-created default progress bar style
+// DefaultBar is a pre-created default progress bar tokens
 var DefaultBar *ProgressBar
 var DefaultProperty Property
 
@@ -37,46 +37,48 @@ func init() {
 // Property is the default Property of the progress bar.
 // A running instance will be initialized with the progress bar's current Property.
 type Property struct {
+	Style
 	Format        string        // Format: The render format of the progress bar(with tokens).
 	PosX, PosY    int           // Pos: The position of the progress bar on the screen
 	Width         int           // Width: The width of the token:"%bar"
 	Uncertain     bool          // Type: Whether the progress bar is Uncertain, default: false
 	rate, elapsed time.Duration // Rate: rate is the rate of progress, elapsed is the elapsed time since call to Run()
 	// NOTE: rate and elapsed will soon to be deprecated
-	Style
+	formatChanged bool // Indicates the change in format when updating property
 	// for UnCertain:
 	Total     int // Total: Only available when Uncertain is false
 	direction int // Dct: 1(default) for increasing, -1 for decreasing, only available when UnCertain is true
 }
 
-// Style is the style struct in the Property struct, used to decorate the token "bar".
+// Style is the tokens struct in the Property struct, used to decorate the token "bar".
 type Style struct {
-	Complete, Incomplete, UnCertain                string // The style of the progress bar
+	Complete, Incomplete, UnCertain                string // The tokens of the progress bar
 	CompleteColor, IncompleteColor, UnCertainColor int    // The color of the progress bar
 }
 
 // ProgressBar is a simple progress bar implementation.
 type ProgressBar struct {
-	style    []token      // Parsed style tokens, will not be updated
+	property Property
+	tokens   []token      // Parsed tokens tokens, will not be updated
 	running  int          // The number of running instances
 	rw       sync.RWMutex // RWMutex to synchronize access to the progress bar
-	Property Property
 }
 
 // Context is a context created when the progress bar is running.
 // Each progress bar instance can create several contexts for reuse.
 type Context struct {
 	property  Property      // Copy of static progress bar property
-	style     []token       // Copy of static progress bar style
+	tokens    []token       // Copy of static progress bar tokens
 	current   int           // current progress
+	startTime time.Time     // start time
 	interrupt chan struct{} // interrupt channel to stop running
 	Done      chan struct{} // Done channel to signal completion
 }
 
-// NewProgressBar creates a new progress bar that with the given style and total.
+// NewProgressBar creates a new progress bar that with the given tokens and total.
 func NewProgressBar(style string, mfs ...ModFunc) (pb *ProgressBar, err error) {
 	if style == "" {
-		return nil, fmt.Errorf("style cannot be empty")
+		return nil, fmt.Errorf("tokens cannot be empty")
 	}
 
 	property := Property{}
@@ -118,12 +120,12 @@ func NewProgressBar(style string, mfs ...ModFunc) (pb *ProgressBar, err error) {
 	if property.Style.UnCertainColor == font.RESET {
 		property.Style.UnCertainColor = font.White
 	}
-	// generate style tokens
+	// generate tokens tokens
 	styleTokens := unmarshalToken(style)
 	// create progress bar
 	pb = &ProgressBar{
-		style:    styleTokens,
-		Property: property,
+		tokens:   styleTokens,
+		property: property,
 		//direction: 1,
 		//interrupt: make(chan struct{}),
 		//Done:      make(chan struct{}),
@@ -133,80 +135,64 @@ func NewProgressBar(style string, mfs ...ModFunc) (pb *ProgressBar, err error) {
 	return
 }
 
-//// NewProgressBar creates a new progress bar that with the given style and total.
-//func NewProgressBar(style string, property Property) (pb *ProgressBar, err error) {
-//	if style == "" {
-//		return nil, fmt.Errorf("style cannot be empty")
-//	}
-//
-//	// modify the properties
-//	if property.Total == 0 {
-//		property.Total = 100
-//	}
-//	if property.Uncertain || (property.Current < 0 || property.Current > property.Total) {
-//		property.Current = 0
-//	}
-//	if property.Width <= 0 {
-//		property.Width = 20
-//	}
-//	if property.Style.Complete == "" {
-//		property.Style.Complete = "#"
-//	}
-//	if property.Style.Incomplete == "" {
-//		property.Style.Incomplete = "-"
-//	}
-//	if property.Style.UnCertain == "" {
-//		property.Style.UnCertain = "<->"
-//	}
-//	if property.Style.CompleteColor == font.RESET {
-//		property.Style.CompleteColor = font.White
-//	}
-//	if property.Style.IncompleteColor == font.RESET {
-//		property.Style.IncompleteColor = font.LightBlack
-//	}
-//	if property.Style.UnCertainColor == font.RESET {
-//		property.Style.UnCertainColor = font.White
-//	}
-//
-//	// generate style tokens
-//	styleTokens := unmarshalToken(style)
-//	// create progress bar
-//	pb = &ProgressBar{
-//		style:     styleTokens,
-//		Property:  property,
-//		direction: 1,
-//		interrupt: make(chan struct{}),
-//		Done:      make(chan struct{}),
-//		rw:        sync.RWMutex{},
-//	}
-//	close(pb.Done) // Close p.Done initially to indicate that p is not running.
-//	return
-//}
+// UpdateProperty updates Property of the progress bar.
+// If the bar has instances running, it will return an error and do nothing.
+func (p *ProgressBar) UpdateProperty(mfs ...ModFunc) (err error) {
+	p.rw.Lock()
+	defer p.rw.Unlock()
+	//if p.running > 0 {
+	//	return fmt.Errorf("progress bar is running, cannot update property")
+	//}
 
-//// UpdateTo updates the current progress of the progress bar and prints it.
-//// In addition, if the bar is running, it will stop.
-//func (p *ProgressBar) UpdateTo(ctx Context,current int) {
-//	if ctx.running {
-//		p.interrupt <- struct{}{}
-//		//p.running = false // Needless: p.Run() will set p.running to false after stopping.
-//	}
-//	<-p.Done // Wait for the previous run to finish
-//	p.rw.Lock()
-//	if p.Property.Uncertain {
-//		p.Property.Current = min(current, p.Property.Width-len(p.Property.Style.UnCertain)) // UnCertain bar use width to update the current progress
-//		if p.Property.Current == p.Property.Width-len(p.Property.Style.UnCertain) {
-//			p.direction = -1
-//		}
-//	} else {
-//		p.Property.Current = min(current, p.Property.Total) // common bar use total to update the current progress
-//	}
-//	p.rw.Unlock()
-//	p.Print()
-//}
+	property := &p.property
+	for _, mf := range mfs {
+		if mf == nil {
+			return fmt.Errorf("modify func cannot be nil")
+		}
+		mf(property)
+	}
+
+	// revise the properties
+	if property.Total == 0 {
+		property.Total = 100 // default total is 100
+	}
+	//if property.Uncertain || (property.Current < 0 || property.Current > property.Total) {
+	//	property.Current = 0
+	//}
+	if property.Uncertain {
+		property.direction = 1
+	}
+	if property.Width <= 0 {
+		property.Width = 20 // default width is 20
+	}
+	if property.Style.Complete == "" {
+		property.Style.Complete = "#"
+	}
+	if property.Style.Incomplete == "" {
+		property.Style.Incomplete = "-"
+	}
+	if property.Style.UnCertain == "" {
+		property.Style.UnCertain = "<->"
+	}
+	if property.Style.CompleteColor == font.RESET {
+		property.Style.CompleteColor = font.White
+	}
+	if property.Style.IncompleteColor == font.RESET {
+		property.Style.IncompleteColor = font.LightBlack
+	}
+	if property.Style.UnCertainColor == font.RESET {
+		property.Style.UnCertainColor = font.White
+	}
+	// generate tokens tokens
+	if property.formatChanged {
+		property.formatChanged = false
+		p.tokens = unmarshalToken(property.Format)
+	}
+	return
+}
 
 // updateCurrent increase the current progress without printing the progress bar.
 func (p *ProgressBar) updateCurrent(ctx *Context) {
-	//p.rw.Lock()
 	if ctx.property.Uncertain {
 		ctx.current = min(ctx.current+ctx.property.direction, ctx.property.Width-len(ctx.property.Style.UnCertain)) // UnCertain bar use width to update the current progress
 		ctx.current = max(ctx.current, 0)
@@ -216,20 +202,7 @@ func (p *ProgressBar) updateCurrent(ctx *Context) {
 	} else {
 		ctx.current = min(ctx.current+1, ctx.property.Total) // common bar use total to update the current progress
 	}
-	//p.rw.Unlock()
 }
-
-//// Update increase the current progress of the progress bar and prints it.
-//// In addition, if the bar is running, it will stop.
-//func (p *ProgressBar) Update() {
-//	if p.running {
-//		p.interrupt <- struct{}{}
-//		//p.running = false // Needless: p.Run() will set p.running to false after stopping.
-//	}
-//	<-p.Done // Wait for the previous run to finish
-//	p.updateCurrent()
-//	p.Print()
-//}
 
 // Print prints the current progress of the progress bar.
 func (p *ProgressBar) Print(ctx *Context) {
@@ -238,7 +211,7 @@ func (p *ProgressBar) Print(ctx *Context) {
 	//defer p.rw.RUnlock()
 
 	payloadBuilder := strings.Builder{}
-	for _, t := range ctx.style {
+	for _, t := range ctx.tokens {
 		payloadBuilder.WriteString(t.toString(ctx))
 	}
 
@@ -250,60 +223,6 @@ func (p *ProgressBar) Print(ctx *Context) {
 		fmt.Printf("%s", payloadBuilder.String())
 	}
 }
-
-//// Run starts the progress bar.
-//func (p *ProgressBar) Run(period time.Duration) {
-//	if p.running {
-//		return
-//	}
-//
-//	var update = func() {
-//		p.rw.Lock()
-//		defer p.rw.Unlock()
-//
-//		if p.Property.Uncertain {
-//			p.Property.Current = p.Property.Current + p.direction
-//			if p.Property.Current == p.Property.Width-len(p.Property.Style.UnCertain) {
-//				p.direction = -1
-//			}
-//			if p.Property.Current == 0 {
-//				p.direction = 1
-//			}
-//		} else {
-//			p.Property.Current++
-//		}
-//		p.Property.elapsed += period
-//	}
-//
-//	p.rw.Lock()
-//	p.Property.rate = period
-//	p.rw.Unlock()
-//
-//	ticker := time.NewTicker(period)
-//	p.running = true
-//	p.Done = make(chan struct{})
-//	p.Print() // Print the initial state
-//	go func() {
-//		defer func() {
-//			ticker.Stop()
-//			p.running = false
-//			close(p.Done) // close p.Done to broadcast completion signal
-//		}()
-//		for {
-//			select {
-//			case <-ticker.C:
-//				p.Print()
-//				if !p.Property.Uncertain && p.Property.Current == p.Property.Total ||
-//					(p.Property.Uncertain && p.Property.Current == p.Property.Width) {
-//					return
-//				}
-//				update()
-//			case <-p.interrupt:
-//				return
-//			}
-//		}
-//	}()
-//}
 
 // Stop stops the progress bar.
 func (p *ProgressBar) Stop(ctx *Context) {
@@ -323,17 +242,17 @@ func (p *ProgressBar) Iter() (iter <-chan int, stop chan<- struct{}) {
 	var ctx Context
 	p.rw.Lock()
 	{
-		if p.Property.Uncertain {
+		if p.property.Uncertain {
 			close(ch) // Uncertain bar cannot be iterated
 			p.rw.Unlock()
 			return ch, nil
 		}
 
-		style := make([]token, len(p.style))
-		copy(style, p.style)
+		style := make([]token, len(p.tokens))
+		copy(style, p.tokens)
 		ctx = Context{
-			property:  p.Property,
-			style:     style,
+			property:  p.property,
+			tokens:    style,
 			current:   0,
 			interrupt: make(chan struct{}),
 			Done:      make(chan struct{}),
@@ -342,6 +261,7 @@ func (p *ProgressBar) Iter() (iter <-chan int, stop chan<- struct{}) {
 	}
 	p.rw.Unlock()
 
+	ctx.startTime = time.Now()
 	go func() {
 		defer close(ch)
 		for i := ctx.current; i <= ctx.property.Total; i++ {
@@ -369,17 +289,17 @@ func (p *ProgressBar) Run(period time.Duration) (stop chan<- struct{}) {
 	var ctx Context
 	p.rw.Lock()
 	{
-		if !p.Property.Uncertain {
+		if !p.property.Uncertain {
 			close(ch) // certain bar cannot be run automatically
 			p.rw.Unlock()
 			return nil
 		}
 
-		style := make([]token, len(p.style))
-		copy(style, p.style)
+		style := make([]token, len(p.tokens))
+		copy(style, p.tokens)
 		ctx = Context{
-			property:  p.Property,
-			style:     style,
+			property:  p.property,
+			tokens:    style,
 			current:   0,
 			interrupt: make(chan struct{}),
 			Done:      make(chan struct{}),
@@ -392,6 +312,7 @@ func (p *ProgressBar) Run(period time.Duration) (stop chan<- struct{}) {
 	}
 	p.rw.Unlock()
 
+	ctx.startTime = time.Now()
 	ticker := time.NewTicker(period)
 	go func() {
 		for {
