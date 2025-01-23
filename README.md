@@ -16,35 +16,60 @@ Gocui is a simple command line graphics toolkit for Go.Use it to build simple co
 
 # Examples
 
-## Progress bar
+## Progress Bar
+bar running by iter.
+
+### Use Default Bar Style
+gocui provide a default bar style:
 ```go
-p, _ := progress_bar.NewProgressBar("[%bar] %current/%total-%percent %rate", func(p *progress_bar.Property) {
-		p.Style.BarComplete = "@"
-		p.Style.BarIncomplete = "-"
-	})
-p.Run(time.Millisecond * 30)
-// wait
-<-p.Done
+p := pb.DefaultBar
+it, _ := p.Iter()
+for range it {
+	//fmt.Printf("i=%d\n", i)
+	time.Sleep(time.Millisecond * 50) // Simulate some time-consuming task
+}
 ```
+which looks like:
+![Example of default progress bar](examples/progressbar/defaultbar/defaultbar.gif)
 
-This will create a progress bar and run it.
-Main goroutine need to wait for the progress bar to finish.
-
-## Uncertain progress bar
+### Common usage
+You can decorate the bar by format string with tokens supported.
 
 ```go
-up, _ := progress_bar.NewProgressBar("[%bar] testing ubar...", func(p *progress_bar.Property) {
-		p.Uncertain = true
-		p.Style.BarIncomplete = " "
-		p.Style.UnCertain = "<->"
-	})
-up.Run(time.Millisecond * 100)
-// wait 5s
-time.Sleep(time.Second * 5)
-up.Stop()
+// test progress bar
+p, _ := pb.NewProgressBar("%spinner[%bar] %percent %rate [%elapsed]",
+	pb.WithStyle(pb.Style{
+		Complete:        ">",
+		Incomplete:      "-",
+		CompleteColor:   font.Green,
+		IncompleteColor: font.LightBlack,
+	}))
+it, _ := p.Iter()
+for range it {
+	time.Sleep(time.Millisecond * 50) // Simulate some time-consuming task
+}
 ```
+Which looks like:
+![Example of progress bar](examples/progressbar/common/commonbar.gif)
 
-This will create an uncertain progress bar and run it, then wait 5s and stop it.
+### Uncertain progress bar
+gocui support uncertain bar, main goroutine can stop it anytime.
+
+```go
+//test uncertain progress bar
+up, _ := pb.NewProgressBar("[%bar] waiting operation...%spinner", pb.WithUncertain(),
+	pb.WithStyle(pb.Style{
+		Incomplete: " ",
+		UnCertain:  "👈🤣👉",
+	}))
+stop := up.Run(time.Millisecond * 100)
+// Simulate a 3-second time-consuming task
+time.Sleep(time.Second * 3)
+close(stop)
+fmt.Printf("\ndone")
+```
+which looks like:
+![Example of uncertain progress bar](examples/progressbar/uncertain/uncertainbar.gif)
 
 ## Text box
 ```go

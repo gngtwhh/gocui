@@ -2,8 +2,9 @@ package window
 
 import (
 	"fmt"
-	"github.com/gngtwhh/gocui/cursor"
 	"strings"
+
+	"github.com/gngtwhh/gocui/cursor"
 )
 
 // ClearArea clears a rectangular area of the screen.
@@ -17,11 +18,11 @@ func ClearArea(x, y, width, height int) {
 // ClearLine clears the line at the given row, or the current line if row is negative.
 func ClearLine(row int) {
 	if row < 0 {
-		fmt.Printf("%s", "\033[s\033[K\033[u")
+		fmt.Print("\033[2K")
 	} else {
-		fmt.Printf("%s", "\033[s")
+		fmt.Print("\033[s")
 		cursor.GotoXY(row, 0)
-		fmt.Printf("%s", "\033[K\033[u")
+		fmt.Print("\033[2K\033[u")
 	}
 }
 

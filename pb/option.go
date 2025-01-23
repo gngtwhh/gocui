@@ -1,5 +1,7 @@
 package pb
 
+import "github.com/gngtwhh/gocui/window"
+
 // ModFunc is a function that modifies the Property of the progress bar.
 type ModFunc func(p *Property)
 
@@ -22,11 +24,16 @@ func WithProperty(p Property) ModFunc {
 
 // WithPos sets the position of the progress bar on the screen.
 // If set, the progress bar will be placed at the specified position,
-// otherwise, it will refresh line by line(by default).
+// otherwise, it will refresh at the current line of the cursor(by default).
 // param x, y: the position of the progress bar on the screen, must be within [0, screen width/height),
 // if x or y is out of range, it will not be set.
 func WithPos(x, y int) ModFunc {
 	return func(p *Property) {
+		w, h := window.GetConsoleSize()
+		if x < 0 || y < 0 || x >= h || y >= w {
+			return
+		}
+		p.BindPos = true
 		p.PosX = x
 		p.PosY = y
 	}
@@ -41,9 +48,9 @@ func WithWidth(w int) ModFunc {
 	}
 }
 
-// WithCount sets the total count of the progress bar to be iterated.
+// WithTotal sets the total count of the progress bar to be iterated.
 // The supplied count argument c must be a positive integer, default is 100.
-func WithCount(c int) ModFunc {
+func WithTotal(c int64) ModFunc {
 	return func(p *Property) {
 		p.Total = c
 	}
@@ -56,7 +63,7 @@ func WithUncertain() ModFunc {
 	}
 }
 
-// WithStyle sets the tokens of the progress bar.
+// WithStyle sets the style of the progress bar.
 func WithStyle(s Style) ModFunc {
 	return func(p *Property) {
 		p.Style = s
@@ -64,10 +71,16 @@ func WithStyle(s Style) ModFunc {
 }
 
 // WithFormat sets the format of the progress bar.
-// The format string will be parsed before rendering.
+// The format string will be parsed to tokens before rendering.
 func WithFormat(f string) ModFunc {
 	return func(p *Property) {
 		p.Format = f
 		p.formatChanged = true
+	}
+}
+
+func WithWriter() ModFunc {
+	return func(p *Property) {
+		p.Bytes = true
 	}
 }

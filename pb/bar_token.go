@@ -2,10 +2,12 @@ package pb
 
 import (
 	"fmt"
-	"github.com/gngtwhh/gocui/font"
+	"math"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gngtwhh/gocui/font"
 )
 
 /**************************************************
@@ -23,7 +25,7 @@ var legalTokens []string
 
 func init() {
 	legalTokens = []string{
-		"%bar", "%current", "%total", "%percent", "%elapsed", "%rate", "%spinner",
+		"%bar", "%current", "%total", "%percent", "%elapsed", "%rate", "%spinner", "%bytes",
 	}
 }
 
@@ -41,10 +43,16 @@ type TokenCurrent struct{}
 type TokenTotal struct{}
 type TokenPercent struct{}
 type TokenElapsed struct{}
-type TokenRate struct{ lastTime time.Time }
+type TokenRate struct {
+	minDelay    time.Duration
+	lastRate    string
+	lastTime    time.Time
+	lastProcess int64
+}
 type TokenString struct{ payload string }
 type TokenSpinner struct{ cur int8 }
 type TokenPercentage struct{}
+type TokenBytes struct{}
 
 // toString implements the interface
 func (b *TokenBar) toString(ctx *Context) string {
@@ -56,7 +64,7 @@ func (b *TokenBar) toString(ctx *Context) string {
 	}
 	p := &ctx.property
 	if p.Uncertain {
-		leftSpace := ctx.current
+		leftSpace := int(ctx.current)
 		rightSpace := p.Width - leftSpace - len(p.Style.UnCertain)
 		return font.Decorate(repeatStr(p.Style.Incomplete, leftSpace), p.Style.IncompleteColor) +
 			font.Decorate(p.Style.UnCertain, p.Style.UnCertainColor) +
@@ -69,11 +77,11 @@ func (b *TokenBar) toString(ctx *Context) string {
 }
 
 func (c *TokenCurrent) toString(ctx *Context) string {
-	return strconv.Itoa(ctx.current)
+	return strconv.FormatInt(ctx.current, 10)
 }
 
 func (t *TokenTotal) toString(ctx *Context) string {
-	return strconv.Itoa(ctx.property.Total)
+	return strconv.FormatInt(ctx.property.Total, 10)
 }
 
 func (t *TokenPercent) toString(ctx *Context) string {
@@ -89,18 +97,39 @@ func (t *TokenPercent) toString(ctx *Context) string {
 
 func (t *TokenElapsed) toString(ctx *Context) string {
 	//return fmt.Sprintf("%5.2fs", ctx.property.elapsed.Seconds())
-	return fmt.Sprintf("%5.2fs", time.Since(ctx.startTime).Seconds())
+	return fmt.Sprintf("%.1fs", time.Since(ctx.startTime).Seconds())
 }
 
 func (t *TokenRate) toString(ctx *Context) string {
-	// curTime - t.lastTime
-	if t.lastTime.IsZero() {
+	//defer func() { t.lastTime = time.Now() }()
+	//if t.lastTime.IsZero() {
+	//	return "0 it/s"
+	//}
+	//inc := 1 / time.Since(t.lastTime).Seconds()
+	//t.lastTime = time.Now()
+	//// return fmt.Sprintf("%.1f it/s", inc)
+	//return fmt.Sprintf("%.0f it/s", inc+0.5)
+
+	//dur := time.Since(ctx.startTime)
+	//rate := (ctx.current) * int64(time.Second/dur)
+	//return fmt.Sprintf("%d it/s", rate)
+
+	defer func() {
+		t.lastProcess = ctx.current
 		t.lastTime = time.Now()
-		return "0.00 ops/s"
+	}()
+	inc := ctx.current - t.lastProcess
+	if t.lastTime.IsZero() {
+		t.lastRate = "0 it/s"
+		return "0 it/s"
 	}
-	duration := float64(time.Second) / float64(time.Now().Sub(t.lastTime))
-	t.lastTime = time.Now()
-	return fmt.Sprintf("%4.1f ops/s", duration)
+	dur := time.Since(t.lastTime)
+	if dur < t.minDelay {
+		return t.lastRate
+	}
+	rate := (inc) * int64(time.Second/dur)
+	t.lastRate = fmt.Sprintf("%d it/s", rate)
+	return t.lastRate
 }
 
 func (s *TokenString) toString(ctx *Context) string {
@@ -111,6 +140,19 @@ func (s *TokenSpinner) toString(ctx *Context) string {
 	res := "\\|/-"[s.cur : s.cur+1]
 	s.cur = (s.cur + 1) % 4
 	return res
+}
+
+func (s *TokenBytes) toString(ctx *Context) string {
+	bytes := ctx.current
+	if bytes == 0 {
+		return "0 B"
+	}
+	sizes := []string{" B", " kB", " MB", " GB", " TB", " PB", " EB"}
+	base := 1024.0
+	e := math.Floor(math.Log(float64(bytes)) / math.Log(base))
+	unit := sizes[int(e)]
+	val := math.Floor(float64(bytes)/math.Pow(base, e)*10+0.5) / 10
+	return fmt.Sprintf("%.1f%s", val, unit)
 }
 
 // unmarshalToken converts the token string to a slice of tokens.
@@ -140,9 +182,11 @@ func unmarshalToken(token string) (ts []token) {
 				case "%elapsed":
 					ts = append(ts, &TokenElapsed{})
 				case "%rate":
-					ts = append(ts, &TokenRate{})
+					ts = append(ts, &TokenRate{minDelay: time.Millisecond})
 				case "%spinner":
 					ts = append(ts, &TokenSpinner{})
+				case "%bytes":
+					ts = append(ts, &TokenBytes{})
 				}
 				ok = true
 				break

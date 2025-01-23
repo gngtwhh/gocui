@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/gngtwhh/gocui/box"
 	"github.com/gngtwhh/gocui/cursor"
 	"github.com/gngtwhh/gocui/font"
 	"github.com/gngtwhh/gocui/graph"
@@ -16,23 +15,24 @@ import (
 )
 
 func boxTest() {
-	payload := []string{
-		"",
-		" 1.Store new books    2.New user registration ",
-		" 3.Borrow books       4.Return books",
-		" 5.All books          6.All user",
-		" 7.Delete database    8.Log out",
-		"",
-		"          Select operation number:",
-	}
-	window.ClearScreen()
+	return
+	// payload := []string{
+	// 	"",
+	// 	" 1.Store new books    2.New user registration ",
+	// 	" 3.Borrow books       4.Return books",
+	// 	" 5.All books          6.All user",
+	// 	" 7.Delete database    8.Log out",
+	// 	"",
+	// 	"          Select operation number:",
+	// }
+	// window.ClearScreen()
 
-	aBox, _ := box.GetBox(box.Property{
-		BoxType: "rounded",
-		Title:   "Books Management System",
-		Payload: payload,
-	})
-	box.SetBoxAt(aBox, 0, 0)
+	// aBox, _ := box.NewBox(box.Property{
+	// 	BoxType: "rounded",
+	// 	Title:   "Books Management System",
+	// 	Payload: payload,
+	// })
+	// box.SetBoxAt(aBox, 0, 0)
 }
 
 //func barTestOld() {
@@ -97,8 +97,8 @@ func barTest() {
 	for range it {
 		//fmt.Printf("i=%d\n", i)
 		time.Sleep(time.Millisecond * 50) // Simulate some time-consuming task
+		// time.Sleep(time.Second * 10) // Simulate some time-consuming task
 	}
-
 	// test progress bar
 	p, _ = pb.NewProgressBar("[%bar] %current/%total-%percent %rate", pb.WithPos(1, 0),
 		pb.WithStyle(pb.Style{
@@ -119,11 +119,13 @@ func barTest() {
 			UnCertain:  "👈🤣👉",
 		}))
 	stop := up.Run(time.Millisecond * 100)
-	_ = up.UpdateProperty(pb.WithPos(5, 0))
+	_, _ = up.UpdateProperty(pb.WithPos(5, 0))
 	stop2 := up.Run(time.Millisecond * 200)
 	time.Sleep(time.Second * 3) // Simulate a 3-second time-consuming task
+	// close(stop2)
+	stop2 <- struct{}{}
+	time.Sleep(time.Second * 3)
 	close(stop)
-	close(stop2)
 
 	cursor.GotoXY(3, 0)
 	fmt.Println("time out. exit...")
@@ -239,9 +241,9 @@ func main() {
 	//c := '0'
 	runList := []string{
 		"barTest",
-		//"boxTest",
+		// "boxTest",
 		// "lineTest",
-		//"windowSizeTest",
+		// "windowSizeTest",
 		// "FontTest",
 	}
 	funcs := map[string]func(){
