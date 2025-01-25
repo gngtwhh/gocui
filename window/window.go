@@ -26,6 +26,16 @@ func ClearLine(row int) {
 	}
 }
 
+// ClearLineAfterCursor clear the content from the cursor position to the end of the line
+func ClearLineAfterCursor() {
+	fmt.Print("\033[K")
+}
+
+// ClearLineBeforCursor Clear the cursor position to the beginning of the line
+func ClearLineBeforCursor() {
+	fmt.Print("\033[1K")
+}
+
 func ClearScreen() {
 	fmt.Printf("%s", "\033[H\033[J")
 }

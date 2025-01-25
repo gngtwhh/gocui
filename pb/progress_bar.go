@@ -260,13 +260,14 @@ func (p *ProgressBar) Print(ctx *Context) {
 	utils.ConsoleMutex.Lock() // Lock the cursor
 	defer utils.ConsoleMutex.Unlock()
 	{
-		window.ClearLine(-1)
+		// window.ClearLine(-1)
 		if ctx.property.BindPos {
 			cursor.GotoXY(ctx.property.PosX, ctx.property.PosY)
 		} else {
 			fmt.Print("\r")
 		}
-		fmt.Printf("%s", payloadBuilder.String())
+		fmt.Print(payloadBuilder.String())
+		window.ClearLineAfterCursor()
 	}
 }
 
@@ -331,12 +332,10 @@ func (p *ProgressBar) Iter() (iter <-chan int64, stop chan<- struct{}) {
 // period is the time interval between each update, pass 0 to use the default period(100ms).
 // If the progress bar is not uncertain, the returned channel will be nil.
 func (p *ProgressBar) Run(period time.Duration) (stop chan<- struct{}) {
-	ch := make(chan int)
 	var ctx Context
 	p.rw.Lock()
 	{
 		if !p.property.Uncertain {
-			close(ch) // certain bar cannot be run automatically
 			p.rw.Unlock()
 			return nil
 		}
@@ -366,10 +365,7 @@ func (p *ProgressBar) Run(period time.Duration) (stop chan<- struct{}) {
 			case <-ticker.C:
 				p.Print(&ctx)
 				p.updateCurrent(&ctx)
-			case _, ok := <-ctx.interrupt: // interrupt got a signal or closed
-				if ok {
-					close(ch)
-				}
+			case <-ctx.interrupt: // interrupt got a signal or closed
 				ticker.Stop()
 				return
 			}
@@ -381,13 +377,11 @@ func (p *ProgressBar) Run(period time.Duration) (stop chan<- struct{}) {
 // RunWithWriter automatically start a progress bar with writing bytes data
 // returns a writer for user to write data and a stop channel indicate exit
 func (p *ProgressBar) RunWithWriter() (writer *BytesWriter, stop chan<- struct{}) {
-	ch := make(chan int)
 	var ctx Context
 	p.rw.Lock()
 	{
 		// check if the bar is with writer
 		if !p.property.Bytes {
-			close(ch)
 			p.rw.Unlock()
 			return
 		}
@@ -410,15 +404,17 @@ func (p *ProgressBar) RunWithWriter() (writer *BytesWriter, stop chan<- struct{}
 	bw := NewBytesWriter()
 
 	go func() {
+		p.Print(&ctx) // print 0
 		for {
 			select {
 			case add := <-bw.bytesChan:
-				p.Print(&ctx)
 				p.updateCurrentWithAdd(&ctx, add)
-			case _, ok := <-ctx.interrupt: // interrupt got a signal or closed
-				if ok {
-					close(ch)
+				p.Print(&ctx)
+				if ctx.current == ctx.property.Total {
+					bw.close()
+					return
 				}
+			case <-ctx.interrupt: // interrupt got a signal or closed
 				bw.close()
 				return
 			}

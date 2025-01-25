@@ -143,16 +143,21 @@ func (s *TokenSpinner) toString(ctx *Context) string {
 }
 
 func (s *TokenBytes) toString(ctx *Context) string {
-	bytes := ctx.current
-	if bytes == 0 {
-		return "0 B"
+	calStr := func(b int64) string {
+		if b == 0 {
+			return "0 B"
+		}
+		sizes := []string{" B", " kB", " MB", " GB", " TB", " PB", " EB"}
+		base := 1024.0
+		e := math.Floor(math.Log(float64(b)) / math.Log(base))
+		unit := sizes[int(e)]
+		val := math.Floor(float64(b)/math.Pow(base, e)*10+0.5) / 10
+		return fmt.Sprintf("%.1f%s", val, unit)
 	}
-	sizes := []string{" B", " kB", " MB", " GB", " TB", " PB", " EB"}
-	base := 1024.0
-	e := math.Floor(math.Log(float64(bytes)) / math.Log(base))
-	unit := sizes[int(e)]
-	val := math.Floor(float64(bytes)/math.Pow(base, e)*10+0.5) / 10
-	return fmt.Sprintf("%.1f%s", val, unit)
+	if ctx.property.Uncertain {
+		return calStr(ctx.current)
+	}
+	return calStr(ctx.current) + "/" + calStr(ctx.property.Total)
 }
 
 // unmarshalToken converts the token string to a slice of tokens.
