@@ -1,8 +1,8 @@
 package font
 
 import (
-	"bytes"
 	"fmt"
+	"strings"
 )
 
 // Style of font
@@ -80,7 +80,7 @@ func SetStyle(style int) string {
 }
 
 func Decorate(text string, style ...int) string {
-	buf := new(bytes.Buffer)
+	buf := strings.Builder{}
 	buf.WriteString("\033[")
 	l := len(style)
 	for i, s := range style {
@@ -92,5 +92,20 @@ func Decorate(text string, style ...int) string {
 	buf.WriteString("m")
 	buf.WriteString(text)
 	buf.WriteString("\033[0m")
+	return buf.String()
+}
+
+func Splice(ks ...interface{}) string {
+	buf := strings.Builder{}
+	for _, k := range ks {
+		switch v := k.(type) {
+		case int:
+			buf.WriteString(fmt.Sprintf("\033[%dm", v))
+		case rune:
+			buf.WriteRune(v)
+		case string:
+			buf.WriteString(v)
+		}
+	}
 	return buf.String()
 }

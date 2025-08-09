@@ -18,5 +18,5 @@ func main() {
 	// Simulate a 3-second time-consuming task
 	time.Sleep(time.Second * 3)
 	close(stop)
-	fmt.Printf("\ndone")
+	fmt.Printf("\ndone\n")
 }

@@ -15,7 +15,6 @@ import (
 )
 
 func boxTest() {
-	return
 	// payload := []string{
 	// 	"",
 	// 	" 1.Store new books    2.New user registration ",
@@ -35,70 +34,20 @@ func boxTest() {
 	// box.SetBoxAt(aBox, 0, 0)
 }
 
-//func barTestOld() {
-//	window.ClearScreen()
-//	cursor.HideCursor()
-//
-//	// test progress bar
-//	p, _ := pb.NewProgressBar("[%bar] %current/%total-%percent %rate", pb.property{
-//		Style: pb.Style{
-//			Complete:        "#",
-//			Incomplete:      "-",
-//			CompleteColor:   font.Green,
-//			IncompleteColor: font.LightBlack,
-//		},
-//	})
-//	for _ = range p.Iter() {
-//		time.Sleep(time.Millisecond * 30)
-//	}
-//	//p.Run(time.Millisecond * 30)
-//	//// wait
-//	//<-p.Done
-//
-//	time.Sleep(time.Second * 2)
-//	window.ClearScreen()
-//
-//	// test uncertain progress bar
-//	up, _ := pb.NewProgressBar("[%bar] testing ubar...%spinner", pb.property{
-//		Uncertain: true,
-//		Style: pb.Style{
-//			Incomplete: " ",
-//			UnCertain:  "👈🤣👉",
-//		},
-//	})
-//	up.Run(time.Millisecond * 100)
-//
-//	// wait 3s
-//	time.Sleep(time.Second * 3)
-//	up.Stop()
-//
-//	// test Default Bar
-//	p = pb.DefaultBar
-//	for i := range p.Iter() {
-//		//fmt.Printf("i=%d\n", i)
-//		fmt.Printf("%d", i)
-//		time.Sleep(time.Millisecond * 100)
-//	}
-//	//p.Run(time.Millisecond * 100)
-//	//// wait
-//	//<-p.Done
-//
-//	cursor.GotoXY(1, 0)
-//	fmt.Println("time out. exit...")
-//}
-
 func barTest() {
 	cursor.HideCursor()
 	window.ClearScreen()
 
 	// test Default Bar
 	p := pb.DefaultBar
-	it, _ := p.Iter()
+	it, stop := p.Iter()
 	for range it {
 		//fmt.Printf("i=%d\n", i)
 		time.Sleep(time.Millisecond * 50) // Simulate some time-consuming task
 		// time.Sleep(time.Second * 10) // Simulate some time-consuming task
 	}
+	close(stop)
+
 	// test progress bar
 	p, _ = pb.NewProgressBar("[%bar] %current/%total-%percent %rate", pb.WithPos(1, 0),
 		pb.WithStyle(pb.Style{
@@ -107,10 +56,11 @@ func barTest() {
 			CompleteColor:   font.Green,
 			IncompleteColor: font.LightBlack,
 		}))
-	it, _ = p.Iter()
+	it, stop = p.Iter()
 	for range it {
 		time.Sleep(time.Millisecond * 30) // Simulate some time-consuming task
 	}
+	close(stop)
 
 	//test uncertain progress bar
 	up, _ := pb.NewProgressBar("[%bar] testing ubar...%spinner", pb.WithUncertain(), pb.WithPos(2, 0),
@@ -118,14 +68,25 @@ func barTest() {
 			Incomplete: " ",
 			UnCertain:  "👈🤣👉",
 		}))
-	stop := up.Run(time.Millisecond * 100)
-	_, _ = up.UpdateProperty(pb.WithPos(5, 0))
+	stop = up.Run(time.Millisecond * 100)
+	_, _ = up.UpdateProperty(pb.WithPos(3, 0))
 	stop2 := up.Run(time.Millisecond * 200)
 	time.Sleep(time.Second * 3) // Simulate a 3-second time-consuming task
 	// close(stop2)
 	stop2 <- struct{}{}
 	time.Sleep(time.Second * 3)
 	close(stop)
+
+	//test the Go function using default uncertain progress bar
+	f := func() {
+		for range 100 {
+			time.Sleep(time.Millisecond * 30) // Simulate some time-consuming task
+		}
+	}
+	pb.Go(f)
+
+	// test the Go method
+	up.Go(f)
 
 	cursor.GotoXY(3, 0)
 	fmt.Println("time out. exit...")

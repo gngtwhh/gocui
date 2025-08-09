@@ -19,6 +19,7 @@ import (
  * %elapsed: The elapsed time of the progress bar
  * %rate: Speed of the progress bar
  * %spinner: A rotator character
+ * %bytes: Progress of writing data
  **************************************************/
 
 var legalTokens []string
@@ -31,8 +32,7 @@ func init() {
 
 // token is the interface that all tokens must implement.
 type token interface {
-	//toString(p *Property) string
-	toString(ctx *Context) string
+	toString(ctx *context) string
 }
 
 // Here are the tokens that can be used in the format string.
@@ -51,40 +51,54 @@ type TokenRate struct {
 }
 type TokenString struct{ payload string }
 type TokenSpinner struct{ cur int8 }
-type TokenPercentage struct{}
 type TokenBytes struct{}
 
 // toString implements the interface
-func (b *TokenBar) toString(ctx *Context) string {
+func (b *TokenBar) toString(ctx *context) string {
 	var repeatStr = func(s string, length int) string {
 		if len(s) == 0 {
 			return ""
 		}
 		return strings.Repeat(s, length/len(s)) + s[:length%len(s)]
 	}
+
 	p := &ctx.property
+	barWidth := p.BarWidth
+	if barWidth == 0 {
+		barWidth = ctx.windowWidth - ctx.WidthWithoutBar
+	}
 	if p.Uncertain {
 		leftSpace := int(ctx.current)
-		rightSpace := p.Width - leftSpace - len(p.Style.UnCertain)
+		rightSpace := barWidth - leftSpace - len(p.Style.UnCertain)
+		if leftSpace == 0 && ctx.direction == -1 {
+			ctx.direction = 1
+		}
+		if rightSpace == 0 && ctx.direction == 1 {
+			ctx.direction = -1
+		}
 		return font.Decorate(repeatStr(p.Style.Incomplete, leftSpace), p.Style.IncompleteColor) +
 			font.Decorate(p.Style.UnCertain, p.Style.UnCertainColor) +
 			font.Decorate(repeatStr(p.Style.Incomplete, rightSpace), p.Style.IncompleteColor)
 	} else {
-		completeLength := int(float64(ctx.current) / float64(p.Total) * float64(p.Width))
+		completeLength := int(float64(ctx.current) / float64(p.Total) * float64(barWidth))
+		if completeLength < 0 {
+			completeLength = 0
+		}
 		return font.Decorate(repeatStr(p.Style.Complete, completeLength), p.Style.CompleteColor) +
-			font.Decorate(repeatStr(p.Style.Incomplete, p.Width-completeLength), p.Style.IncompleteColor)
+			font.Decorate(p.Style.CompleteHead, p.Style.CompleteHeadColor) +
+			font.Decorate(repeatStr(p.Style.Incomplete, barWidth-completeLength), p.Style.IncompleteColor)
 	}
 }
 
-func (c *TokenCurrent) toString(ctx *Context) string {
+func (c *TokenCurrent) toString(ctx *context) string {
 	return strconv.FormatInt(ctx.current, 10)
 }
 
-func (t *TokenTotal) toString(ctx *Context) string {
+func (t *TokenTotal) toString(ctx *context) string {
 	return strconv.FormatInt(ctx.property.Total, 10)
 }
 
-func (t *TokenPercent) toString(ctx *Context) string {
+func (t *TokenPercent) toString(ctx *context) string {
 	var percent int
 	if ctx.current == 0 {
 		percent = 0
@@ -95,25 +109,12 @@ func (t *TokenPercent) toString(ctx *Context) string {
 	return fmt.Sprintf("%3d%%", percent)
 }
 
-func (t *TokenElapsed) toString(ctx *Context) string {
-	//return fmt.Sprintf("%5.2fs", ctx.property.elapsed.Seconds())
+func (t *TokenElapsed) toString(ctx *context) string {
+	// return fmt.Sprintf("%5.2fs", ctx.property.elapsed.Seconds())
 	return fmt.Sprintf("%.1fs", time.Since(ctx.startTime).Seconds())
 }
 
-func (t *TokenRate) toString(ctx *Context) string {
-	//defer func() { t.lastTime = time.Now() }()
-	//if t.lastTime.IsZero() {
-	//	return "0 it/s"
-	//}
-	//inc := 1 / time.Since(t.lastTime).Seconds()
-	//t.lastTime = time.Now()
-	//// return fmt.Sprintf("%.1f it/s", inc)
-	//return fmt.Sprintf("%.0f it/s", inc+0.5)
-
-	//dur := time.Since(ctx.startTime)
-	//rate := (ctx.current) * int64(time.Second/dur)
-	//return fmt.Sprintf("%d it/s", rate)
-
+func (t *TokenRate) toString(ctx *context) string {
 	defer func() {
 		t.lastProcess = ctx.current
 		t.lastTime = time.Now()
@@ -132,17 +133,17 @@ func (t *TokenRate) toString(ctx *Context) string {
 	return t.lastRate
 }
 
-func (s *TokenString) toString(ctx *Context) string {
+func (s *TokenString) toString(ctx *context) string {
 	return s.payload
 }
 
-func (s *TokenSpinner) toString(ctx *Context) string {
+func (s *TokenSpinner) toString(ctx *context) string {
 	res := "\\|/-"[s.cur : s.cur+1]
 	s.cur = (s.cur + 1) % 4
 	return res
 }
 
-func (s *TokenBytes) toString(ctx *Context) string {
+func (s *TokenBytes) toString(ctx *context) string {
 	calStr := func(b int64) string {
 		if b == 0 {
 			return "0 B"
@@ -161,7 +162,7 @@ func (s *TokenBytes) toString(ctx *Context) string {
 }
 
 // unmarshalToken converts the token string to a slice of tokens.
-func unmarshalToken(token string) (ts []token) {
+func unmarshalToken(token string) (ts []token, barPos []int) {
 	if len(token) == 0 {
 		return
 	}
@@ -178,6 +179,7 @@ func unmarshalToken(token string) (ts []token) {
 				switch legalToken {
 				case "%bar":
 					ts = append(ts, &TokenBar{})
+					barPos = append(barPos, len(ts)-1)
 				case "%current":
 					ts = append(ts, &TokenCurrent{})
 				case "%total":

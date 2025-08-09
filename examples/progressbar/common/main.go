@@ -9,9 +9,10 @@ import (
 
 func main() {
 	// test progress bar
-	p, _ := pb.NewProgressBar("%spinner[%bar] %percent %rate [%elapsed]",
+	p, _ := pb.NewProgressBar("%spinner[%bar]%percent %rate[%elapsed]",
 		pb.WithStyle(pb.Style{
-			Complete:        ">",
+			Complete:        "=",
+			CompleteHead:    ">",
 			Incomplete:      "-",
 			CompleteColor:   font.Green,
 			IncompleteColor: font.LightBlack,

@@ -79,8 +79,16 @@ func WithFormat(f string) ModFunc {
 	}
 }
 
+// WithWriter set the bar type as IO bar
 func WithWriter() ModFunc {
 	return func(p *Property) {
 		p.Bytes = true
+	}
+}
+
+// WithBarWidth set the width of the bar width
+func WithBarWidth(w int) ModFunc {
+	return func(p *Property) {
+		p.BarWidth = w
 	}
 }
