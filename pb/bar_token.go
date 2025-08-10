@@ -80,7 +80,7 @@ func (b *TokenBar) toString(ctx *context) string {
 			font.Decorate(p.Style.UnCertain, p.Style.UnCertainColor) +
 			font.Decorate(repeatStr(p.Style.Incomplete, rightSpace), p.Style.IncompleteColor)
 	} else {
-		completeLength := int(float64(ctx.current)/float64(p.Total)*float64(barWidth)) - len(p.Style.CompleteHead)
+		completeLength := int(float64(ctx.current)/float64(p.total)*float64(barWidth)) - len(p.Style.CompleteHead)
 		if completeLength < 0 {
 			completeLength = 0
 		}
@@ -95,7 +95,7 @@ func (c *TokenCurrent) toString(ctx *context) string {
 }
 
 func (t *TokenTotal) toString(ctx *context) string {
-	return strconv.FormatInt(ctx.property.Total, 10)
+	return strconv.FormatInt(ctx.property.total, 10)
 }
 
 func (t *TokenPercent) toString(ctx *context) string {
@@ -103,7 +103,7 @@ func (t *TokenPercent) toString(ctx *context) string {
 	if ctx.current == 0 {
 		percent = 0
 	} else {
-		percent = int(float64(ctx.current) / float64(ctx.property.Total) * 100)
+		percent = int(float64(ctx.current) / float64(ctx.property.total) * 100)
 	}
 	// 保留2位小数
 	return fmt.Sprintf("%3d%%", percent)
@@ -158,7 +158,7 @@ func (s *TokenBytes) toString(ctx *context) string {
 	if ctx.property.Uncertain {
 		return calStr(ctx.current)
 	}
-	return calStr(ctx.current) + "/" + calStr(ctx.property.Total)
+	return calStr(ctx.current) + "/" + calStr(ctx.property.total)
 }
 
 // unmarshalToken converts the token string to a slice of tokens.

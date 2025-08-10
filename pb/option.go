@@ -48,14 +48,6 @@ func WithWidth(w int) ModFunc {
 	}
 }
 
-// WithTotal sets the total count of the progress bar to be iterated.
-// The supplied count argument c must be a positive integer, default is 100.
-func WithTotal(c int64) ModFunc {
-	return func(p *Property) {
-		p.Total = c
-	}
-}
-
 // WithUncertain sets the type of progress bar to uncertain.
 func WithUncertain() ModFunc {
 	return func(p *Property) {

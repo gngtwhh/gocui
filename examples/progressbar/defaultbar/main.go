@@ -9,8 +9,7 @@ import (
 func main() {
 	// test Default Bar
 	p := pb.DefaultBar
-	it, _ := p.Iter()
-	for range it {
+	p.Iter(100, func() {
 		time.Sleep(time.Millisecond * 50) // Simulate some time-consuming task
-	}
+	})
 }

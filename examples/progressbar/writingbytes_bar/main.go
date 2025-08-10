@@ -38,8 +38,9 @@ func main() {
 	}()
 
 	fmt.Println("downloading...go1.23.5.src.tar.gz")
-	bar, _ := pb.NewProgressBar("[%bar] %percent %bytes", pb.WithWriter(), pb.WithTotal(resp.ContentLength))
-	barWriter, _ := bar.RunWithWriter()
+	// bar, _ := pb.NewProgressBar("[%bar] %percent %bytes", pb.WithWriter(), pb.WithTotal(resp.ContentLength))
+	bar, _ := pb.NewProgressBar("[%bar] %percent %bytes", pb.WithWriter())
+	barWriter, _ := bar.RunWithWriter(resp.ContentLength)
 	if _, err := io.Copy(io.MultiWriter(f, barWriter), resp.Body); err != nil {
 		fmt.Print(err.Error())
 	}

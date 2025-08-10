@@ -40,13 +40,11 @@ func barTest() {
 
 	// test Default Bar
 	p := pb.DefaultBar
-	it, stop := p.Iter()
-	for range it {
+	p.Iter(100, func() {
 		//fmt.Printf("i=%d\n", i)
 		time.Sleep(time.Millisecond * 50) // Simulate some time-consuming task
 		// time.Sleep(time.Second * 10) // Simulate some time-consuming task
-	}
-	close(stop)
+	})
 
 	// test progress bar
 	p, _ = pb.NewProgressBar("[%bar] %current/%total-%percent %rate", pb.WithPos(1, 0),
@@ -56,11 +54,9 @@ func barTest() {
 			CompleteColor:   font.Green,
 			IncompleteColor: font.LightBlack,
 		}))
-	it, stop = p.Iter()
-	for range it {
+	p.Iter(100, func() {
 		time.Sleep(time.Millisecond * 30) // Simulate some time-consuming task
-	}
-	close(stop)
+	})
 
 	//test uncertain progress bar
 	up, _ := pb.NewProgressBar("[%bar] testing ubar...%spinner", pb.WithUncertain(), pb.WithPos(2, 0),
@@ -68,13 +64,13 @@ func barTest() {
 			Incomplete: " ",
 			UnCertain:  "👈🤣👉",
 		}))
-	stop = up.Run(time.Millisecond * 100)
+	stop := up.Run(time.Millisecond * 100)
 	_, _ = up.UpdateProperty(pb.WithPos(3, 0))
 	stop2 := up.Run(time.Millisecond * 200)
+	// Simelate doing something
 	time.Sleep(time.Second * 3) // Simulate a 3-second time-consuming task
-	// close(stop2)
 	stop2 <- struct{}{}
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 3) // Another 3-second time-consuming task
 	close(stop)
 
 	//test the Go function using default uncertain progress bar

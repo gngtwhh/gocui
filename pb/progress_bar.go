@@ -37,7 +37,7 @@ func init() {
 			CompleteColor:   font.WhiteBg,
 			IncompleteColor: font.RESET,
 		},
-		Total: 100,
+		total: 100,
 	}
 	DefaultBar, err = NewProgressBar(DefaultBarFormat, WithDefault())
 	if err != nil {
@@ -67,7 +67,7 @@ type Property struct {
 	BarWidth   int    // BarWidth: The render width of the token:"%bar"
 	Width      int    // Width: The maximum width of the progress bar displayed on the terminal.
 
-	Total int64 // Total: Only available when Uncertain is false or Bytes is true
+	total int64 // Total: Only available when Uncertain is false or Bytes is true
 
 	Uncertain bool // Uncertain: Whether the progress bar is Uncertain, default: false
 	Bytes     bool // Type: Whether the progress bar is used for bytes writer, default: false
@@ -183,8 +183,8 @@ func NewProgressBar(style string, mfs ...ModFunc) (pb *ProgressBar, err error) {
 	}
 
 	// revise the properties
-	if property.Total == 0 {
-		property.Total = 100 // default total is 100
+	if property.total == 0 {
+		property.total = 100 // default total is 100
 	}
 	if property.BarWidth < 0 {
 		property.BarWidth = 0 // default 0 means full width
@@ -244,8 +244,8 @@ func (p *ProgressBar) UpdateProperty(mfs ...ModFunc) (NewBar *ProgressBar, err e
 	}
 
 	// revise the properties
-	if property.Total == 0 {
-		property.Total = 100 // default total is 100
+	if property.total == 0 {
+		property.total = 100 // default total is 100
 	}
 	if property.BarWidth < 0 {
 		property.BarWidth = 0 // default 0 means full width
@@ -293,7 +293,7 @@ func (p *ProgressBar) updateCurrent(ctx *context) {
 		ctx.current = ctx.current + int64(ctx.direction)
 	} else {
 		// common bar use total to update the current progress
-		ctx.current = min(ctx.current+1, ctx.property.Total)
+		ctx.current = min(ctx.current+1, ctx.property.total)
 	}
 }
 
@@ -309,7 +309,7 @@ func (p *ProgressBar) updateCurrentWithAdd(ctx *context, add int) {
 		}
 	} else {
 		ctx.current = min(
-			ctx.current+int64(add), ctx.property.Total,
+			ctx.current+int64(add), ctx.property.total,
 		) // common bar use total to update the current progress
 	}
 }
@@ -355,16 +355,17 @@ func (p *ProgressBar) stop(ctx *context) {
 	p.rw.Unlock()
 }
 
-// Iter starts a progress bar iteration, and returns two channels:
+// iter starts a progress bar iteration, and returns two channels:
 // iter <-chan int: to be used to iterate over the progress bar;
 // stop chan<- struct{}: to stop the progress bar.
 // This method should not be used if the progress bar is uncertain,
 // otherwise, the returned iter channel will be closed, and the stop channel will be nil.
-func (p *ProgressBar) Iter() (iter <-chan int64, stop chan<- struct{}) {
+func (p *ProgressBar) iter(n int) (iter <-chan int64, stop chan<- struct{}) {
 	ch := make(chan int64)
 	var ctx context
 	p.rw.Lock()
 	{
+		p.property.total = int64(n)
 		if p.property.Uncertain {
 			close(ch) // Uncertain bar cannot be iterated
 			p.rw.Unlock()
@@ -379,7 +380,7 @@ func (p *ProgressBar) Iter() (iter <-chan int64, stop chan<- struct{}) {
 	go func() {
 		defer p.stop(&ctx)
 		defer close(ch)
-		for i := ctx.current; i <= ctx.property.Total; i++ {
+		for i := ctx.current; i <= ctx.property.total; i++ {
 			p.Print(&ctx)
 			select {
 			case ch <- i:
@@ -390,6 +391,19 @@ func (p *ProgressBar) Iter() (iter <-chan int64, stop chan<- struct{}) {
 		}
 	}()
 	return ch, ctx.interrupt
+}
+
+// Iter WILL BLOCK, start an default progress bar over the param function and render the bar.
+// The bar will iterate n times and call f for each iteration.
+func (p *ProgressBar) Iter(n int, f func()) {
+	if n <= 0 || f == nil {
+		return
+	}
+	it, stop := p.iter(n)
+	for range it {
+		f()
+	}
+	close(stop)
 }
 
 // Run starts an uncertain progress bar, and returns a channel to stop the progress bar.
@@ -431,9 +445,14 @@ func (p *ProgressBar) Run(period time.Duration) (stop chan<- struct{}) {
 	return ctx.interrupt
 }
 
-// RunWithWriter automatically start a progress bar with writing bytes data
-// returns a writer for user to write data and a stop channel indicate exit
-func (p *ProgressBar) RunWithWriter() (writer *BytesWriter, stop chan<- struct{}) {
+// RunWithWriter automatically start a progress bar with writing bytes data.
+// param n: the total bytes to write.
+// It returns a writer for user to write data and a stop channel indicate exit.
+// This method should not be called if the progress bar is not with writer or is uncertain.
+func (p *ProgressBar) RunWithWriter(n int64) (writer *BytesWriter, stop chan<- struct{}) {
+	if p.property.Uncertain {
+		return
+	}
 	var ctx context
 	p.rw.Lock()
 	{
@@ -442,7 +461,7 @@ func (p *ProgressBar) RunWithWriter() (writer *BytesWriter, stop chan<- struct{}
 			p.rw.Unlock()
 			return
 		}
-
+		p.property.total = n // n bytes to receive
 		ctx = NewContext(p)
 		p.running++
 	}
@@ -460,7 +479,7 @@ func (p *ProgressBar) RunWithWriter() (writer *BytesWriter, stop chan<- struct{}
 			case add := <-bw.bytesChan:
 				p.updateCurrentWithAdd(&ctx, add)
 				p.Print(&ctx)
-				if ctx.current == ctx.property.Total {
+				if ctx.current == ctx.property.total {
 					bw.close()
 					return
 				}
@@ -484,11 +503,24 @@ func (p *ProgressBar) Go(f func()) {
 	close(stop)
 }
 
-// Go WILL BLOCK, start an default uncertain bar over the param function and render the par
-// until f finish.
+// Go WILL BLOCK, start an default uncertain bar over the param function and render the bar until f finish.
+// This method will panic if the progress bar is not uncertain.
 func Go(f func()) {
 	pb := DefaultUncertainBar
 	stop := pb.Run(0)
+	if stop == nil {
+		panic("progress bar is not uncertain")
+	}
 	f()
 	close(stop)
+}
+
+// Iter WILL BLOCK, start an default progress bar over the param function and render the bar.
+// The bar will iterate n times and call f for each iteration.
+func Iter(n int, f func()) {
+	if n <= 0 || f == nil {
+		return
+	}
+	p := DefaultBar
+	p.Iter(n, f)
 }

@@ -17,8 +17,8 @@ func main() {
 			CompleteColor:   font.Green,
 			IncompleteColor: font.LightBlack,
 		}))
-	it, _ := p.Iter()
-	for range it {
+	p.Iter(100, func() {
 		time.Sleep(time.Millisecond * 50) // Simulate some time-consuming task
-	}
+	})
+
 }
