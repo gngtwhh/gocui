@@ -1,18 +1,29 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gngtwhh/gocui/pb"
 )
 
 func main() {
+	// The server only supports weak ciphers, which were disabled by default in Go 1.22.
+	os.Setenv("GODEBUG", "tlsrsakex=1")
+
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		},
+	}
+	client := &http.Client{Transport: tr}
 	req, _ := http.NewRequest("GET", "https://studygolang.com/dl/golang/go1.23.5.src.tar.gz", nil)
 	req.Header.Add("Accept-Encoding", "identity")
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		panic(err)
 	}
@@ -26,11 +37,12 @@ func main() {
 		}
 	}()
 
-	fmt.Println("downloading...")
+	fmt.Println("downloading...go1.23.5.src.tar.gz")
 	bar, _ := pb.NewProgressBar("[%bar] %percent %bytes", pb.WithWriter(), pb.WithTotal(resp.ContentLength))
 	barWriter, _ := bar.RunWithWriter()
 	if _, err := io.Copy(io.MultiWriter(f, barWriter), resp.Body); err != nil {
 		fmt.Print(err.Error())
 	}
-	fmt.Print("\ndone")
+	time.Sleep(time.Millisecond)
+	fmt.Print("\ndone\n")
 }
