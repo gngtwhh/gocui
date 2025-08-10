@@ -80,7 +80,7 @@ func (b *TokenBar) toString(ctx *context) string {
 			font.Decorate(p.Style.UnCertain, p.Style.UnCertainColor) +
 			font.Decorate(repeatStr(p.Style.Incomplete, rightSpace), p.Style.IncompleteColor)
 	} else {
-		completeLength := int(float64(ctx.current) / float64(p.Total) * float64(barWidth))
+		completeLength := int(float64(ctx.current)/float64(p.Total)*float64(barWidth)) - len(p.Style.CompleteHead)
 		if completeLength < 0 {
 			completeLength = 0
 		}
