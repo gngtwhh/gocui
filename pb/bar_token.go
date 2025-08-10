@@ -86,7 +86,7 @@ func (b *TokenBar) toString(ctx *context) string {
 		}
 		return font.Decorate(repeatStr(p.Style.Complete, completeLength), p.Style.CompleteColor) +
 			font.Decorate(p.Style.CompleteHead, p.Style.CompleteHeadColor) +
-			font.Decorate(repeatStr(p.Style.Incomplete, barWidth-completeLength), p.Style.IncompleteColor)
+			font.Decorate(repeatStr(p.Style.Incomplete, barWidth-completeLength-len(p.Style.CompleteHead)), p.Style.IncompleteColor)
 	}
 }
 
