@@ -12,11 +12,11 @@ func main() {
 	up, _ := pb.NewProgressBar("[%bar] waiting operation...%spinner", pb.WithUncertain(),
 		pb.WithStyle(pb.Style{
 			Incomplete: " ",
-			UnCertain:  "👈🤣👉",
+			UnCertain:  "<===>",
 		}))
-	stop := up.Run(time.Millisecond * 100)
+	stop := up.Run(time.Millisecond * 500)
 	// Simulate a 3-second time-consuming task
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 20)
 	close(stop)
 	fmt.Printf("\ndone\n")
 }

@@ -65,22 +65,25 @@ func (b *TokenBar) toString(ctx *context) string {
 	p := &ctx.property
 	barWidth := p.BarWidth
 	if barWidth == 0 {
-		barWidth = ctx.windowWidth - ctx.WidthWithoutBar
+		barWidth = ctx.windowWidth - ctx.widthWithoutBar
 	}
 	if p.Uncertain {
-		leftSpace := int(ctx.current)
-		rightSpace := barWidth - leftSpace - len(p.Style.UnCertain)
-		if leftSpace == 0 && ctx.direction == -1 {
-			ctx.direction = 1
-		}
-		if rightSpace == 0 && ctx.direction == 1 {
-			ctx.direction = -1
-		}
+		// leftSpace := int(ctx.current)
+		// rightSpace := barWidth - leftSpace - len(p.Style.UnCertain)
+		// if leftSpace == 0 && ctx.direction == -1 {
+		// 	ctx.direction = 1
+		// }
+		// if rightSpace == 0 && ctx.direction == 1 {
+		// 	ctx.direction = -1
+		// }
+		leftSpace := int(ctx.current) % barWidth
+		uncertainWidth := min(barWidth-leftSpace, len(p.Style.UnCertain))
+		rightSpace := max(0, barWidth-leftSpace-len(p.Style.UnCertain))
 		return font.Decorate(repeatStr(p.Style.Incomplete, leftSpace), p.Style.IncompleteColor) +
-			font.Decorate(p.Style.UnCertain, p.Style.UnCertainColor) +
+			font.Decorate(repeatStr(p.Style.UnCertain, uncertainWidth), p.Style.UnCertainColor) +
 			font.Decorate(repeatStr(p.Style.Incomplete, rightSpace), p.Style.IncompleteColor)
 	} else {
-		completeLength := int(float64(ctx.current)/float64(p.total)*float64(barWidth)) - len(p.Style.CompleteHead)
+		completeLength := int(float64(ctx.current)/float64(ctx.total)*float64(barWidth)) - len(p.Style.CompleteHead)
 		if completeLength < 0 {
 			completeLength = 0
 		}
@@ -95,7 +98,7 @@ func (c *TokenCurrent) toString(ctx *context) string {
 }
 
 func (t *TokenTotal) toString(ctx *context) string {
-	return strconv.FormatInt(ctx.property.total, 10)
+	return strconv.FormatInt(ctx.total, 10)
 }
 
 func (t *TokenPercent) toString(ctx *context) string {
@@ -103,7 +106,7 @@ func (t *TokenPercent) toString(ctx *context) string {
 	if ctx.current == 0 {
 		percent = 0
 	} else {
-		percent = int(float64(ctx.current) / float64(ctx.property.total) * 100)
+		percent = int(float64(ctx.current) / float64(ctx.total) * 100)
 	}
 	// 保留2位小数
 	return fmt.Sprintf("%3d%%", percent)
@@ -158,7 +161,7 @@ func (s *TokenBytes) toString(ctx *context) string {
 	if ctx.property.Uncertain {
 		return calStr(ctx.current)
 	}
-	return calStr(ctx.current) + "/" + calStr(ctx.property.total)
+	return calStr(ctx.current) + "/" + calStr(ctx.total)
 }
 
 // unmarshalToken converts the token string to a slice of tokens.

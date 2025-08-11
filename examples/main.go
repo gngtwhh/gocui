@@ -62,7 +62,7 @@ func barTest() {
 	up, _ := pb.NewProgressBar("[%bar] testing ubar...%spinner", pb.WithUncertain(), pb.WithPos(2, 0),
 		pb.WithStyle(pb.Style{
 			Incomplete: " ",
-			UnCertain:  "👈🤣👉",
+			UnCertain:  "<===>",
 		}))
 	stop := up.Run(time.Millisecond * 100)
 	_, _ = up.UpdateProperty(pb.WithPos(3, 0))
@@ -83,6 +83,22 @@ func barTest() {
 
 	// test the Go method
 	up.Go(f)
+
+	// test the Start method
+	r, err := p.Start(100)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	for i := range 100 {
+		time.Sleep(time.Millisecond * 30) // Simulate some time-consuming task
+		if i > 50 {
+			r.UpdateAdd(-1)
+		} else {
+			r.UpdateAdd(1)
+		}
+	}
+	r.Stop()
 
 	cursor.GotoXY(3, 0)
 	fmt.Println("time out. exit...")
