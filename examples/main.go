@@ -85,11 +85,7 @@ func barTest() {
 	up.Go(f)
 
 	// test the Start method
-	r, err := p.Start(100)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	r, _ := p.Start(100)
 	for i := range 100 {
 		time.Sleep(time.Millisecond * 30) // Simulate some time-consuming task
 		if i > 50 {

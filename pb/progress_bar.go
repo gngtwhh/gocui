@@ -26,7 +26,7 @@ var (
 	DefaultUncertainBarProperty Property
 )
 
-func init() {
+func InitProgressBar() {
 	var err error
 
 	DefaultBarFormat = "%percent|%bar|%current/%total %elapsed %rate"
@@ -88,19 +88,19 @@ type ProgressBar struct {
 	rw sync.RWMutex // RWMutex to synchronize access to the progress bar
 }
 
-// context is a context created when the progress bar is running.
+// Context is a Context created when the progress bar is running.
 // Each progress bar instance can create several contexts for reuse.
-type context struct {
-	property        Property      // Copy of static progress bar property
+type Context struct {
+	Property        Property      // Copy of static progress bar property
 	tokens          []token       // Copy of static progress bar tokens
-	total           int64         // total: Only available when Uncertain is false or Bytes is true
-	current         int64         // current progress
-	windowWidth     int           // window width, set by window.GetConsoleSize()
-	widthWithoutBar int           // accumulated render width without bar
-	startTime       time.Time     // start time
-	interrupt       chan struct{} // interrupt channel to stop running
-	// direction: for UnCertain bar to update, 1(default) for increasing, -1 for decreasing, only available when UnCertain is true
-	direction int
+	Total           int64         // total: Only available when Uncertain is false or Bytes is true
+	Current         int64         // current progress
+	WindowWidth     int           // window width, set by window.GetConsoleSize()
+	WidthWithoutBar int           // accumulated render width without bar
+	StartTime       time.Time     // start time
+	Interrupt       chan struct{} // interrupt channel to stop running
+	// Direction: for UnCertain bar to update, 1(default) for increasing, -1 for decreasing, only available when UnCertain is true
+	Direction int
 }
 
 // BytesWriter implements io.Writer interface,
@@ -116,12 +116,12 @@ type BytesWriter struct {
 // For users to manually control the progress of the progress bar.
 type Runner struct {
 	bar *ProgressBar
-	ctx *context
+	ctx *Context
 }
 
 // Update updates the progress bar's current value.
 func (r *Runner) Update(value int64) {
-	value = min(max(0, value), r.ctx.total)
+	value = min(max(0, value), r.ctx.Total)
 	r.ctx.updateCurrentTo(value)
 	r.ctx.Print()
 }
@@ -137,20 +137,20 @@ func (r *Runner) Stop() {
 	// currently doing nothing
 }
 
-func NewContext(p *ProgressBar) context {
+func NewContext(p *ProgressBar) Context {
 	style := make([]token, len(p.tokens))
 	copy(style, p.tokens)
 
-	ctx := context{
-		property: p.property,
+	ctx := Context{
+		Property: p.property,
 		tokens:   style,
 		// barPos:          DefaultBarPos,
-		current:   0,
-		startTime: time.Now(),
-		interrupt: make(chan struct{}),
-		direction: 1,
+		Current:   0,
+		StartTime: time.Now(),
+		Interrupt: make(chan struct{}),
+		Direction: 1,
 	}
-	ctx.windowWidth, _ = window.GetConsoleSize()
+	ctx.WindowWidth, _ = window.GetConsoleSize()
 	return ctx
 }
 
@@ -297,8 +297,8 @@ func (p *ProgressBar) UpdateProperty(mfs ...ModFunc) (NewBar *ProgressBar, err e
 }
 
 // updateCurrent increase the current progress without printing the progress bar.
-func (ctx *context) updateCurrent() {
-	if ctx.property.Uncertain {
+func (ctx *Context) updateCurrent() {
+	if ctx.Property.Uncertain {
 		// ctx.current += int64(ctx.direction)
 		// if rightSpace := ctx.property.barWidth -ctx.current - len(ctx.property.UnCertain); rightSpace <= 0 && ctx.direction == 1 {
 		// 	ctx.current = ctx.total
@@ -307,33 +307,33 @@ func (ctx *context) updateCurrent() {
 		// 	ctx.current = 0
 		// 	ctx.direction = -ctx.direction
 		// }
-		ctx.current++
+		ctx.Current++
 	} else {
 		// common bar use total to update the current progress
-		ctx.current = min(ctx.current+1, ctx.total)
+		ctx.Current = min(ctx.Current+1, ctx.Total)
 	}
 }
 
 // updateCurrentWithAdd increase the current progress by add
-func (ctx *context) updateCurrentWithAdd(add int64) {
-	if ctx.property.Uncertain {
+func (ctx *Context) updateCurrentWithAdd(add int64) {
+	if ctx.Property.Uncertain {
 		ctx.updateCurrent() // just add 1 for uncertain progress bar
 	} else {
-		ctx.current = min(ctx.current+add, ctx.total) // common bar use total to update the current progress
+		ctx.Current = min(ctx.Current+add, ctx.Total) // common bar use total to update the current progress
 	}
 }
 
 // updateCurrentTo update the current progress to value
-func (ctx *context) updateCurrentTo(value int64) {
-	if ctx.property.Uncertain && int64(value) != ctx.current {
+func (ctx *Context) updateCurrentTo(value int64) {
+	if ctx.Property.Uncertain && int64(value) != ctx.Current {
 		ctx.updateCurrent() // just add 1 for uncertain progress bar
 	} else {
-		ctx.current = min(max(int64(value), 0), ctx.total)
+		ctx.Current = min(max(int64(value), 0), ctx.Total)
 	}
 }
 
 // Print prints the current progress of the progress bar.
-func (ctx *context) Print() {
+func (ctx *Context) Print() {
 	var payloadBuilder0 strings.Builder
 	payloadBuilder1 := strings.Builder{}
 	var barToken *TokenBar
@@ -343,18 +343,18 @@ func (ctx *context) Print() {
 			payloadBuilder0 = payloadBuilder1
 			payloadBuilder1 = strings.Builder{}
 		} else {
-			payloadBuilder1.WriteString(t.toString(ctx))
+			payloadBuilder1.WriteString(t.ToString(ctx))
 		}
 	}
-	ctx.widthWithoutBar = payloadBuilder0.Len() + payloadBuilder1.Len()
-	barStr := barToken.toString(ctx)
+	ctx.WidthWithoutBar = payloadBuilder0.Len() + payloadBuilder1.Len()
+	barStr := barToken.ToString(ctx)
 
 	utils.ConsoleMutex.Lock() // Lock the cursor
 	defer utils.ConsoleMutex.Unlock()
 	{
 		// window.ClearLine(-1)
-		if ctx.property.BindPos {
-			cursor.GotoXY(ctx.property.PosX, ctx.property.PosY)
+		if ctx.Property.BindPos {
+			cursor.GotoXY(ctx.Property.PosX, ctx.Property.PosY)
 		} else {
 			fmt.Print("\r")
 		}
@@ -366,7 +366,7 @@ func (ctx *context) Print() {
 }
 
 // Stop stops the progress bar.
-func (ctx *context) stop() {
+func (ctx *Context) stop() {
 	// currently do nothing
 
 	// ctx.interrupt <- struct{}{}
@@ -382,7 +382,7 @@ func (ctx *context) stop() {
 // otherwise, the returned iter channel will be closed, and the stop channel will be nil.
 func (p *ProgressBar) iter(n int) (iter <-chan int64, stop chan<- struct{}) {
 	ch := make(chan int64)
-	var ctx context
+	var ctx Context
 	p.rw.Lock()
 	{
 		// p.property.total = int64(n)
@@ -392,26 +392,26 @@ func (p *ProgressBar) iter(n int) (iter <-chan int64, stop chan<- struct{}) {
 			return ch, nil
 		}
 		ctx = NewContext(p)
-		ctx.total = int64(n)
+		ctx.Total = int64(n)
 		// p.running++
 	}
 	p.rw.Unlock()
 
-	ctx.startTime = time.Now()
+	ctx.StartTime = time.Now()
 	go func() {
 		defer ctx.stop()
 		defer close(ch)
-		for i := ctx.current; i <= ctx.total; i++ {
+		for i := ctx.Current; i <= ctx.Total; i++ {
 			ctx.Print()
 			select {
 			case ch <- i:
-			case <-ctx.interrupt:
+			case <-ctx.Interrupt:
 				return
 			}
 			ctx.updateCurrent()
 		}
 	}()
-	return ch, ctx.interrupt
+	return ch, ctx.Interrupt
 }
 
 // Start starts an progress bar, and returns a *Runner instance to control the progress bar.
@@ -424,7 +424,7 @@ func (p *ProgressBar) Start(n int) (r *Runner, err error) {
 	// p.running++
 	ctx := NewContext(p)
 	p.rw.Unlock()
-	ctx.total = int64(n)
+	ctx.Total = int64(n)
 	r = &Runner{
 		bar: p,
 		ctx: &ctx,
@@ -449,7 +449,7 @@ func (p *ProgressBar) Iter(n int, f func()) {
 // period is the time interval between each update, pass 0 to use the default period(100ms).
 // If the progress bar is not uncertain, the returned channel will be nil.
 func (p *ProgressBar) Run(period time.Duration) (stop chan<- struct{}) {
-	var ctx context
+	var ctx Context
 	p.rw.Lock()
 	{
 		if !p.property.Uncertain {
@@ -465,7 +465,7 @@ func (p *ProgressBar) Run(period time.Duration) (stop chan<- struct{}) {
 	}
 	p.rw.Unlock()
 
-	ctx.startTime = time.Now()
+	ctx.StartTime = time.Now()
 	ticker := time.NewTicker(period)
 
 	go func() {
@@ -475,13 +475,13 @@ func (p *ProgressBar) Run(period time.Duration) (stop chan<- struct{}) {
 			case <-ticker.C:
 				ctx.Print()
 				ctx.updateCurrent()
-			case <-ctx.interrupt: // interrupt got a signal or closed
+			case <-ctx.Interrupt: // interrupt got a signal or closed
 				ticker.Stop()
 				return
 			}
 		}
 	}()
-	return ctx.interrupt
+	return ctx.Interrupt
 }
 
 // RunWithWriter automatically start a progress bar with writing bytes data.
@@ -492,7 +492,7 @@ func (p *ProgressBar) RunWithWriter(n int64) (writer *BytesWriter, stop chan<- s
 	if p.property.Uncertain {
 		return
 	}
-	var ctx context
+	var ctx Context
 	p.rw.Lock()
 	{
 		// check if the bar is with writer
@@ -501,12 +501,12 @@ func (p *ProgressBar) RunWithWriter(n int64) (writer *BytesWriter, stop chan<- s
 			return
 		}
 		ctx = NewContext(p)
-		ctx.total = n // n bytes to receive
+		ctx.Total = n // n bytes to receive
 		// p.running++
 	}
 	p.rw.Unlock()
 
-	ctx.startTime = time.Now()
+	ctx.StartTime = time.Now()
 
 	bw := NewBytesWriter()
 
@@ -518,17 +518,17 @@ func (p *ProgressBar) RunWithWriter(n int64) (writer *BytesWriter, stop chan<- s
 			case add := <-bw.bytesChan:
 				ctx.updateCurrentWithAdd(int64(add))
 				ctx.Print()
-				if ctx.current == ctx.total {
+				if ctx.Current == ctx.Total {
 					bw.close()
 					return
 				}
-			case <-ctx.interrupt: // interrupt got a signal or closed
+			case <-ctx.Interrupt: // interrupt got a signal or closed
 				bw.close()
 				return
 			}
 		}
 	}()
-	return bw, ctx.interrupt
+	return bw, ctx.Interrupt
 }
 
 // Go WILL BLOCK, start the uncertain bar over the param function and render the bar until f finish.
