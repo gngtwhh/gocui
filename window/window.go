@@ -28,7 +28,7 @@ func ClearLine(row int) {
 
 // ClearLineAfterCursor clear the content from the cursor position to the end of the line
 func ClearLineAfterCursor() {
-	fmt.Print("\033[K")
+	fmt.Print("\033[0K")
 }
 
 // ClearLineBeforCursor Clear the cursor position to the beginning of the line

@@ -51,7 +51,9 @@ func InitProgressBar() {
 			UnCertainColor: font.WhiteBg,
 		},
 	}
-	DefaultUncertainBar, err = NewProgressBar(DefaultUncertainBarFormat, WithProperty(DefaultUncertainBarProperty), WithUncertain())
+	DefaultUncertainBar, err = NewProgressBar(
+		DefaultUncertainBarFormat, WithProperty(DefaultUncertainBarProperty), WithUncertain(),
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -361,7 +363,9 @@ func (ctx *Context) Print() {
 		fmt.Print(payloadBuilder0.String())
 		fmt.Print(barStr)
 		fmt.Print(payloadBuilder1.String())
-		window.ClearLineAfterCursor()
+		if ctx.Property.BarWidth != 0 {
+			window.ClearLineAfterCursor()
+		}
 	}
 }
 
