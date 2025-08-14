@@ -1,4 +1,4 @@
-//go:build windows || !unix
+//go:build windows
 
 package window
 
